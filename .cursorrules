@@ -1,0 +1,57 @@
+# Cursor Rules for SmartGlass Project
+
+## 프로젝트 개요
+Kotlin Multiplatform 프로젝트 (Android/iOS)
+
+## 코딩 스타일
+- Kotlin 코딩 컨벤션을 따릅니다
+- Compose Multiplatform을 사용합니다
+- 코드는 명확하고 읽기 쉽게 작성합니다
+
+## 파일 구조
+- `composeApp/src/commonMain`: 공통 코드
+- `composeApp/src/androidMain`: Android 전용 코드
+- `composeApp/src/iosMain`: iOS 전용 코드
+
+## 주의사항
+- 플랫폼별 구현은 각 플랫폼 디렉토리에 작성합니다
+- 공통 로직은 commonMain에 작성합니다
+- 네이티브 API 사용 시 Platform-specific 구현을 사용합니다
+
+# Project Context
+- **기술 스택:** Kotlin Multiplatform (KMP), Compose Multiplatform (공통 UI), SwiftUI (iOS 전용), Koin (DI), Ktor (네트워크).
+- **아키텍처:** Clean Architecture (Domain -> Data -> Presentation).
+- **디자인 패턴:** MVI (Model-View-Intent) 및 단방향 데이터 흐름(UDF).
+- **CI/CD:** Github Actions.
+- **문서화:** Confluence (Markdown 표 형식).
+
+# Agent Rules
+
+## 1. UI 구현 규칙 (Figma to Code)
+- Figma 스크린샷이나 Dev Mode 속성이 제공되면 패딩, 색상, 폰트 등 시각적 요소를 정밀하게 분석하여 `shared` 모듈의 **Compose Multiplatform** 코드로 구현한다.
+- **재사용성:** UI 요소를 화면 파일에 하드코딩하지 말고, 버튼이나 카드 같은 요소는 반드시 재사용 가능한 컴포넌트(예: `CommonButton.kt`)로 식별하여 `ui/component` 패키지로 분리한다.
+- Android와 iOS에서 동일한 시각적 경험을 제공하도록 공통 UI 작성을 우선시한다.
+
+## 2. 비즈니스 로직 규칙 (Clean Architecture & MVI)
+- 기능(Feature) 구현 시 Presentation, Domain, Data 레이어 전반에 걸쳐 필요한 파일들을 **동시에 생성 및 수정**한다. 레이어별 역할은 다음과 같다:
+  - **Presentation:** ViewModel (State 보유, Intent 처리), Screen (State 렌더링).
+  - **Domain:** UseCase (순수 Kotlin 로직), Repository Interface.
+  - **Data:** Repository Implementation, DataSource, DTO.
+- **MVI 패턴 준수:** 사용자 액션 -> `Intent` 발생 -> ViewModel이 `UseCase` 호출 -> 결과로 불변 `State` 업데이트 흐름을 엄격히 따른다.
+
+## 3. 빌드 및 자동화 규칙 (CI/CD)
+- 자동화 요청 시 Android/iOS 타겟 빌드 및 테스트를 위한 `.github/workflows/main.yml`을 작성한다.
+- **검증 필수:** 코드를 생성한 후 작업 완료를 선언하기 전에, 반드시 터미널에서 로컬 빌드 체크(`./gradlew build` 또는 `xcodebuild`)를 수행하여 생성된 코드의 유효성을 스스로 검증한다.
+
+## 4. 문서화 규칙 (Confluence)
+- 기능 구현 완료 시나 요청 시, 아래와 같은 **Confluence 최적화 Markdown 표** 형식으로 작업 내용을 요약한다.
+- **출력 형식:**
+  | 기능명 | 수정된 파일 | 로직 요약 | 상태 |
+  | :--- | :--- | :--- | :--- |
+  | 로그인 | `LoginViewModel.kt`, `AuthRepository.kt` | API를 통한 사용자 인증 로직 구현 | 완료 |
+- MCP 도구가 연결되어 있다면 자동 업로드를 시도하고, 그렇지 않다면 복사 가능한 원본 Markdown 텍스트를 제공한다.
+
+## 5. 일반 코드베이스 규칙
+- **파일 시스템:** 명시적인 요청이나 확인 없이 기존 파일을 임의로 삭제하지 않는다.
+- **iOS 호환성:** `shared` 모듈의 코드를 수정할 때 `iosApp` 빌드에 영향을 주지 않는지(표준 라이브러리 사용, cinterop 이슈 등) 항상 확인한다.
+- **에러 핸들링:** 빌드 실패 시 단순히 재시도하지 말고, 에러 로그를 분석하여 원인을 설명한다. 특히 버전 의존성 문제라면 `libs.versions.toml` 파일의 수정을 최우선으로 고려한다.
