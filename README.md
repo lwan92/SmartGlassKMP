@@ -1,3 +1,14 @@
+# SmartGlass KMP
+
+Kotlin Multiplatform 프로젝트 - Android & iOS 스마트글래스 애플리케이션
+
+## 🏗️ 아키텍처
+- **Clean Architecture** (Domain, Data, Presentation)
+- **MVI Pattern** (Model-View-Intent)
+- **Dependency Injection**: Koin 4.0.1
+
+---
+
 This is a Kotlin Multiplatform project targeting Android, iOS.
 
 * [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
