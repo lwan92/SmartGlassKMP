@@ -5,14 +5,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusable
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -31,7 +29,8 @@ fun CommonTextField(
     modifier: Modifier = Modifier,
     isPassword: Boolean = false,
     showPassword: Boolean = false,
-    onTogglePasswordVisibility: (() -> Unit)? = null
+    onTogglePasswordVisibility: (() -> Unit)? = null,
+    onFocusChange: ((Boolean) -> Unit)? = null
 ) {
     Box(
         modifier = modifier
@@ -46,7 +45,19 @@ fun CommonTextField(
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (onFocusChange != null) {
+                        Modifier
+                            .focusable()
+                            .onFocusChanged { focusState ->
+                                onFocusChange(focusState.isFocused)
+                            }
+                    } else {
+                        Modifier
+                    }
+                ),
             textStyle = AppTypography.R14px.copy(color = HighEmphasis),
             cursorBrush = SolidColor(HighEmphasis),
             visualTransformation = if (isPassword && !showPassword) PasswordVisualTransformation() else VisualTransformation.None,
@@ -66,13 +77,13 @@ fun CommonTextField(
                         innerTextField()
                     }
                     if (isPassword && onTogglePasswordVisibility != null) {
-                        Icon(
-                            imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (showPassword) "비밀번호 숨기기" else "비밀번호 보기",
+                        Text(
+                            text = if (showPassword) "숨기기" else "보기",
+                            style = AppTypography.R14px,
+                            color = Gray600,
                             modifier = Modifier
-                                .size(20.dp)
-                                .clickable { onTogglePasswordVisibility() },
-                            tint = Gray600
+                                .padding(start = 8.dp)
+                                .clickable { onTogglePasswordVisibility() }
                         )
                     }
                 }

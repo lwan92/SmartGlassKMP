@@ -30,7 +30,7 @@ sealed class PasswordResetState {
      * 비밀번호 유효성 검사
      * 8자 이상~20자 이내로 영문, 숫자, 특수 문자를 포함해야 함
      */
-    private fun isValidPassword(password: String): Boolean {
+    fun isValidPassword(password: String): Boolean {
         if (password.length < 8 || password.length > 20) return false
         val hasLetter = password.any { it.isLetter() }
         val hasDigit = password.any { it.isDigit() }

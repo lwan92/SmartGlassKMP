@@ -75,11 +75,16 @@ fun PasswordResetScreen(
         
         Spacer(modifier = Modifier.height(24.dp))
         
+        val idleState = when (state) {
+            is PasswordResetState.Idle -> state
+            else -> null
+        }
+        
         when (state) {
             is PasswordResetState.Idle -> {
                 // 현재 비밀번호 입력 필드
                 CommonTextField(
-                    value = state.currentPassword,
+                    value = idleState.currentPassword,
                     onValueChange = { 
                         viewModel.handleIntent(
                             PasswordResetIntent.UpdateCurrentPassword(it)
@@ -87,7 +92,7 @@ fun PasswordResetScreen(
                     },
                     placeholder = "현재 비밀번호",
                     isPassword = true,
-                    showPassword = state.showCurrentPassword,
+                    showPassword = idleState.showCurrentPassword,
                     onTogglePasswordVisibility = {
                         viewModel.handleIntent(
                             PasswordResetIntent.ToggleCurrentPasswordVisibility
