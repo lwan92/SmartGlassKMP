@@ -30,10 +30,12 @@ class AuthRepositoryImpl(
             
             val response = authApi.login(request)
             
-            if (response.success) {
+            if (response.success && response.data != null) {
                 Result.success(response.data.toDomain())
             } else {
-                Result.failure(Exception("Login failed: ${response.code}"))
+                val errorMessage = response.message 
+                    ?: "로그인에 실패했습니다. (코드: ${response.code})"
+                Result.failure(Exception(errorMessage))
             }
         } catch (e: Exception) {
             Result.failure(e)

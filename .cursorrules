@@ -1,4 +1,5 @@
 # Project Context
+- **개발 철학:** **Spec-Driven Development (스펙 주도 개발).** 기존 레거시 코드를 복사하지 않고, 분석된 명세서(`*_spec.md`)를 바탕으로 Clean Code를 새로 작성한다.
 - **기술 스택:** Kotlin Multiplatform (KMP), Compose Multiplatform (공통 UI), SwiftUI (iOS 전용), Koin (DI), Ktor (네트워크).
 - **아키텍처:** Clean Architecture (Domain -> Data -> Presentation).
 - **디자인 패턴:** MVI (Model-View-Intent) 및 단방향 데이터 흐름(UDF).
@@ -7,39 +8,49 @@
 
 # Agent Rules
 
-## 1. UI 구현 규칙 (Figma to Code)
-- Figma 스크린샷이나 Dev Mode 속성이 제공되면 패딩, 색상, 폰트 등 시각적 요소를 정밀하게 분석하여 `shared` 모듈의 **Compose Multiplatform** 코드로 구현한다.
-- **재사용성:** UI 요소를 화면 파일에 하드코딩하지 말고, 버튼이나 카드 같은 요소는 반드시 재사용 가능한 컴포넌트(예: `CommonButton.kt`)로 식별하여 `ui/component` 패키지로 분리한다.
-- Android와 iOS에서 동일한 시각적 경험을 제공하도록 공통 UI 작성을 우선시한다.
+## 0. 스펙 기반 개발 원칙 (Spec-Driven Workflow)
+- **절대 규칙:** 레거시 프로젝트의 코드를 직접 복사/붙여넣기 하는 것을 **엄격히 금지**한다. 오직 아래 3가지 명세서를 기준으로 코드를 작성한다.
+  1.  **`features_spec.md`**: 비즈니스 로직, User Flow, State 정의 기준.
+  2.  **`api_spec.md`**: API 엔드포인트, DTO 구조, Data Layer 구현 기준.
+  3.  **`ui_design_spec.md`**: 디자인 토큰, 레이아웃 수치, 컴포넌트 스타일 기준.
+- 모든 구현은 위 명세서의 내용을 KMP 환경(Pure Kotlin)에 맞게 재해석하여 구현해야 한다.
+
+## 1. UI 구현 규칙 (Figma & Spec to Code)
+- **기준 문서:** Figma 링크가 있다면 Figma를 우선하되, `ui_design_spec.md`에 정의된 디자인 토큰(Color, Typography, Spacing)을 준수하여 `shared` 모듈의 **Compose Multiplatform** 코드로 구현한다.
+- **컴포넌트화:** UI 요소를 화면 파일에 하드코딩하지 않는다. `ui_design_spec.md`의 'Component Catalog' 항목을 참고하여 버튼, 카드 등을 `ui/component` 패키지에 재사용 가능한 컴포넌트로 분리한다.
+- **플랫폼 대응:** Android와 iOS에서 동일한 시각적 경험을 제공하도록 공통 UI(`commonMain`) 작성을 우선시하되, iOS 고유 기능이 필요한 경우에만 `iosMain` 또는 SwiftUI를 사용한다.
 
 ## 2. 비즈니스 로직 규칙 (Clean Architecture & MVI)
-- 기능(Feature) 구현 시 Presentation, Domain, Data 레이어 전반에 걸쳐 필요한 파일들을 **동시에 생성 및 수정**한다. 레이어별 역할은 다음과 같다:
-  - **Presentation:** ViewModel (State 보유, Intent 처리), Screen (State 렌더링).
-  - **Domain:** UseCase (순수 Kotlin 로직), Repository Interface.
-  - **Data:** Repository Implementation, DataSource, DTO.
+- **로직 구현:** `features_spec.md`에 정의된 User Flow와 로직을 기반으로 Presentation, Domain, Data 레이어를 구현한다.
+  - **Presentation:** `features_spec.md`의 State 정의를 보고 ViewModel의 `StateFlow`를 설계한다.
+  - **Domain:** 순수 Kotlin 로직으로 UseCase를 작성한다. (`java.*` 패키지 사용 금지)
+  - **Data:** `api_spec.md`를 보고 Repository와 DataSource를 구현한다.
 - **MVI 패턴 준수:** 사용자 액션 -> `Intent` 발생 -> ViewModel이 `UseCase` 호출 -> 결과로 불변 `State` 업데이트 흐름을 엄격히 따른다.
 
-## 3. 빌드 및 자동화 규칙 (CI/CD)
+## 3. 네트워크 및 데이터 규칙 (Ktor & Koin)
+- **API 구현:** `api_spec.md`에 명시된 엔드포인트와 JSON 구조를 바탕으로 **Ktor Client**와 **Kotlinx.Serialization**을 사용해 구현한다.
+- **DI 설정:** Koin을 사용하여 모듈(`appModule`, `networkModule`)을 구성하고, iOS(`iosMain`)와 Android(`androidMain`)의 진입점에서 올바르게 주입되도록 설정한다.
+
+## 4. 빌드 및 자동화 규칙 (CI/CD)
 - 자동화 요청 시 Android/iOS 타겟 빌드 및 테스트를 위한 `.github/workflows/main.yml`을 작성한다.
 - **검증 필수:** 코드를 생성한 후 작업 완료를 선언하기 전에, 반드시 터미널에서 로컬 빌드 체크(`./gradlew build` 또는 `xcodebuild`)를 수행하여 생성된 코드의 유효성을 스스로 검증한다.
 
-## 4. Git Flow 및 협업 규칙 (Feature Branch & PR)
+## 5. Git Flow 및 협업 규칙 (Feature Branch & PR)
 - **브랜치 전략:**
   - `main` 브랜치에 직접 커밋(Direct Commit)하는 것을 **엄격히 금지**한다.
   - 새로운 작업 시작 시 반드시 `feature/<기능명>` 형식의 브랜치를 생성하고 전환한다. (예: `feature/login-ui`)
 - **PR 프로세스:**
   - 작업 완료 및 로컬 빌드 성공 시 Pull Request(PR) 생성을 준비한다.
   - Github CLI(`gh`) 사용이 가능하다면 명령어로 PR을 생성하고, 불가능하다면 PR 제목과 본문(작업 요약, 변경 사항)을 작성하여 제공한다.
-  - Code Review 승인 및 CI 통과 후에만 Merge를 진행하도록 안내한다.
 
-## 5. 문서화 규칙 (Confluence)
+## 6. 문서화 규칙 (Confluence)
 - 기능 구현 완료 시나 요청 시, 아래와 같은 **Confluence 최적화 Markdown 표** 형식으로 작업 내용을 요약한다.
 - **출력 형식:**
-  | 기능명 | 수정된 파일 | 로직 요약 | 상태 |
-  | :--- | :--- | :--- | :--- |
-  | 로그인 | `LoginViewModel.kt`, `AuthRepository.kt` | API를 통한 사용자 인증 로직 구현 | 완료 |
+  | 기능명 | 관련 스펙 문서 | 수정된 파일 | 로직 요약 | 상태 |
+  | :--- | :--- | :--- | :--- | :--- |
+  | 로그인 | `features_spec.md` | `LoginViewModel.kt`, `AuthRepo.kt` | Spec에 따른 인증 로직 구현 | 완료 |
 
-## 6. 일반 코드베이스 규칙
+## 7. 일반 코드베이스 규칙
 - **파일 시스템:** 명시적인 요청이나 확인 없이 기존 파일을 임의로 삭제하지 않는다.
 - **iOS 호환성:** `shared` 모듈의 코드를 수정할 때 `iosApp` 빌드에 영향을 주지 않는지(표준 라이브러리 사용, cinterop 이슈 등) 항상 확인한다.
 - **에러 핸들링:** 빌드 실패 시 단순히 재시도하지 말고, 에러 로그를 분석하여 원인을 설명한다. 특히 버전 의존성 문제라면 `libs.versions.toml` 파일의 수정을 최우선으로 고려한다.
