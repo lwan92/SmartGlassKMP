@@ -2,7 +2,6 @@ package com.smartglass.project.presentation.qrscan
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -12,13 +11,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.smartglass.project.platform.qr.QrScanner
 import com.smartglass.project.ui.theme.Primary
 
 /**
  * QR 스캔 화면
- * TODO: 플랫폼별 QR 스캔 구현 필요
- * - Android: CameraX + MLKit
- * - iOS: AVFoundation
+ * iOS: AVFoundation 기반 실제 QR 스캔
+ * Android: Placeholder (CameraX 구현 필요)
  * features_spec.md: 2. 로그인 화면 - QR 코드 스캔 참고
  */
 @Composable
@@ -48,75 +47,39 @@ fun QrScanScreen(
     ) {
         when (val currentState = state) {
             is QrScanState.Idle, is QrScanState.Scanning -> {
-                // TODO: 실제 QR 스캔 UI 구현
-                // 임시 UI: QR 스캔 placeholder
+                // 실제 QR 스캔 UI (iOS: AVFoundation, Android: Placeholder)
+                QrScanner(
+                    modifier = Modifier.fillMaxSize(),
+                    onQrCodeScanned = { qrCode ->
+                        viewModel.handleIntent(QrScanIntent.QrCodeScanned(qrCode))
+                    },
+                    onError = { error ->
+                        viewModel.handleIntent(QrScanIntent.ScanError(error))
+                    }
+                )
+                
+                // 안내 오버레이
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .align(Alignment.TopCenter)
+                        .padding(top = 48.dp)
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // 카메라 프리뷰 placeholder
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .background(Color.DarkGray),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "📷",
-                                fontSize = 64.sp,
-                                color = Color.White
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "QR 코드 스캔 화면",
-                                color = Color.White,
-                                fontSize = 18.sp
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "카메라 프리뷰 영역",
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(32.dp))
-                    
                     Text(
                         text = "QR 코드를 스캔해주세요",
                         color = Color.White,
                         fontSize = 20.sp,
                         textAlign = TextAlign.Center
                     )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "관리자로부터 받은 QR 코드를\n프레임 안에 맞춰주세요",
                         color = Color.White.copy(alpha = 0.9f),
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center
                     )
-                    
-                    Spacer(modifier = Modifier.height(32.dp))
-                    
-                    // 테스트용 버튼
-                    Button(
-                        onClick = {
-                            // 테스트용 QR 데이터
-                            viewModel.handleIntent(QrScanIntent.QrCodeScanned("test-app-id-12345"))
-                        }
-                    ) {
-                        Text("테스트용 QR 스캔 시뮬레이션")
-                    }
                 }
             }
             
@@ -143,23 +106,27 @@ fun QrScanScreen(
             is QrScanState.Error -> {
                 // 에러 표시
                 Column(
+                    modifier = Modifier.padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
+                        text = "⚠️",
+                        fontSize = 48.sp,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
                         text = currentState.message,
                         color = Color.Red,
                         fontSize = 16.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(32.dp)
+                        textAlign = TextAlign.Center
                     )
                     
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Button(onClick = {
+                    // 3초 후 다시 스캔 모드로
+                    LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(3000)
                         viewModel.handleIntent(QrScanIntent.StartScanning)
-                    }) {
-                        Text("다시 시도")
                     }
                 }
             }
