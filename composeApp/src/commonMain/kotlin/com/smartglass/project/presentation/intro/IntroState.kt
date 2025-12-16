@@ -6,10 +6,12 @@ package com.smartglass.project.presentation.intro
  */
 sealed class IntroState {
     object Idle : IntroState()
+    object ShowingSplash : IntroState()
     object CheckingPermissions : IntroState()
     object RequestingPermissions : IntroState()
     object CheckingLogin : IntroState()
     object AutoLoginInProgress : IntroState()
+    data class Error(val message: String) : IntroState()
     object NavigateToLogin : IntroState()
     object NavigateToHome : IntroState()
 }

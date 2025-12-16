@@ -3,6 +3,7 @@ package com.smartglass.project.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Primary Colors
+val Primary = Color(0xFF2196F3)
 val PrimaryDisabled = Color(0xFFF2F2F2)
 val PrimaryDisabledText = Color(0xFFBDBDBD)
 

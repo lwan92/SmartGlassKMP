@@ -38,6 +38,13 @@ object AppTypography {
         lineHeight = 18.sp
     )
 
+    val M14px = TextStyle(
+        fontFamily = pretendardFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 14.sp,
+        lineHeight = 18.sp
+    )
+
     val SB16px = TextStyle(
         fontFamily = pretendardFamily,
         fontWeight = FontWeight.SemiBold,

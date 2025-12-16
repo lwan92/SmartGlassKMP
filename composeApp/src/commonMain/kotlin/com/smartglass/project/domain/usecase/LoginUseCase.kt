@@ -9,7 +9,9 @@ class LoginUseCase(
     suspend operator fun invoke(
         loginId: String,
         password: String,
-        autoLogin: Boolean
+        autoLogin: Boolean,
+        appId: String? = null,
+        allowDuplicateLogin: Boolean = false
     ): Result<LoginResult> {
         // 입력값 검증
         if (loginId.isBlank()) {
@@ -24,10 +26,10 @@ class LoginUseCase(
         return authRepository.login(
             loginId = loginId,
             password = password,
-            deviceType = "MOBILE", // 또는 플랫폼에 따라 "GLASS", "MOBILE_NEO" 등
+            deviceType = "MOBILE",
             platform = getPlatform(),
-            allowDuplicateLogin = autoLogin,
-            appId = null // 필요 시 기기 등록 후 사용
+            allowDuplicateLogin = allowDuplicateLogin,
+            appId = appId
         )
     }
     
