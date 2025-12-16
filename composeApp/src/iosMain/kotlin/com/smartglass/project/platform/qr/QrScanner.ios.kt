@@ -6,11 +6,12 @@ import androidx.compose.ui.interop.UIKitView
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.AVFoundation.*
 import platform.CoreGraphics.CGRect
-import platform.Foundation.NSNotificationCenter
+import platform.Foundation.NSError
 import platform.UIKit.UIView
 import platform.darwin.NSObject
 import platform.darwin.dispatch_get_main_queue
 import platform.darwin.dispatch_async
+import platform.QuartzCore.CALayer
 
 /**
  * iOS QR 스캐너 구현
@@ -47,17 +48,21 @@ actual fun QrScanner(
             }
             
             // 카메라 입력 설정
-            val videoInput = try {
-                AVCaptureDeviceInput.deviceInputWithDevice(videoDevice, null)
-            } catch (e: Exception) {
+            var error: NSError? = null
+            val videoInput = AVCaptureDeviceInput.deviceInputWithDevice(
+                device = videoDevice,
+                error = null
+            ) as? AVCaptureDeviceInput
+            
+            if (videoInput == null) {
                 dispatch_async(dispatch_get_main_queue()) {
-                    onError("카메라 접근 실패: ${e.message}")
+                    onError("카메라 접근 실패")
                 }
                 return@UIKitView view
             }
             
-            if (captureSession.canAddInput(videoInput)) {
-                captureSession.addInput(videoInput)
+            if (captureSession.canAddInput(videoInput as AVCaptureInput)) {
+                captureSession.addInput(videoInput as AVCaptureInput)
             } else {
                 dispatch_async(dispatch_get_main_queue()) {
                     onError("카메라 입력 추가 실패")
@@ -68,8 +73,8 @@ actual fun QrScanner(
             // 메타데이터 출력 설정
             val metadataOutput = AVCaptureMetadataOutput()
             
-            if (captureSession.canAddOutput(metadataOutput)) {
-                captureSession.addOutput(metadataOutput)
+            if (captureSession.canAddOutput(metadataOutput as AVCaptureOutput)) {
+                captureSession.addOutput(metadataOutput as AVCaptureOutput)
                 
                 // QR 코드 타입 설정
                 metadataOutput.setMetadataObjectTypes(
@@ -130,7 +135,9 @@ actual fun QrScanner(
         },
         onRelease = { view ->
             // 리소스 정리
-            view.layer.sublayers?.forEach { it.removeFromSuperlayer() }
+            view.layer.sublayers?.forEach { sublayer ->
+                (sublayer as? CALayer)?.removeFromSuperlayer()
+            }
         }
     )
 }
