@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -36,15 +37,25 @@ fun CommonTextField(
             .border(
                 width = 1.dp,
                 color = Gray200,
-                shape = RoundedCornerShape(4.dp)
+                shape = RoundedCornerShape(8.dp)
             )
             .padding(horizontal = 16.dp, vertical = 15.dp)
     ) {
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            textStyle = AppTypography.R14px.copy(color = HighEmphasis),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (onFocusChange != null) {
+                        Modifier.onFocusChanged { focusState ->
+                            onFocusChange(focusState.isFocused)
+                        }
+                    } else {
+                        Modifier
+                    }
+                ),
+            textStyle = AppTypography.M14px.copy(color = HighEmphasis),
             cursorBrush = SolidColor(HighEmphasis),
             visualTransformation = if (isPassword && !showPassword) PasswordVisualTransformation() else VisualTransformation.None,
             decorationBox = { innerTextField ->
@@ -56,7 +67,7 @@ fun CommonTextField(
                         if (value.isEmpty()) {
                             Text(
                                 text = placeholder,
-                                style = AppTypography.R14px,
+                                style = AppTypography.M14px,
                                 color = Gray600
                             )
                         }
@@ -65,7 +76,7 @@ fun CommonTextField(
                     if (isPassword && onTogglePasswordVisibility != null) {
                         Text(
                             text = if (showPassword) "숨기기" else "보기",
-                            style = AppTypography.R14px,
+                            style = AppTypography.M14px,
                             color = Gray600,
                             modifier = Modifier
                                 .padding(start = 8.dp)

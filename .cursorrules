@@ -1,5 +1,5 @@
 # Project Context
-- **개발 철학:** **Spec-Driven Development (스펙 주도 개발).** 기존 레거시 코드를 복사하지 않고, 분석된 명세서(`*_spec.md`)를 바탕으로 Clean Code를 새로 작성한다.
+- **개발 철학:** **Spec-Driven Development (스펙 주도 개발). 분석된 명세서(`*_spec.md`)를 바탕으로 Clean Code를 새로 작성한다.
 - **기술 스택:** Kotlin Multiplatform (KMP), Compose Multiplatform (공통 UI), SwiftUI (iOS 전용), Koin (DI), Ktor (네트워크).
 - **아키텍처:** Clean Architecture (Domain -> Data -> Presentation).
 - **디자인 패턴:** MVI (Model-View-Intent) 및 단방향 데이터 흐름(UDF).
@@ -9,7 +9,7 @@
 # Agent Rules
 
 ## 0. 스펙 기반 개발 원칙 (Spec-Driven Workflow)
-- **절대 규칙:** 레거시 프로젝트의 코드를 직접 복사/붙여넣기 하는 것을 **엄격히 금지**한다. 오직 아래 3가지 명세서를 기준으로 코드를 작성한다.
+- **절대 규칙:** 아래 3가지 명세서를 기준으로 코드를 작성한다.
   1.  **`features_spec.md`**: 비즈니스 로직, User Flow, State 정의 기준.
   2.  **`api_spec.md`**: API 엔드포인트, DTO 구조, Data Layer 구현 기준.
   3.  **`ui_design_spec.md`**: 디자인 토큰, 레이아웃 수치, 컴포넌트 스타일 기준.
