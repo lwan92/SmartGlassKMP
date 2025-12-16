@@ -9,8 +9,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.focusable
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -45,19 +43,7 @@ fun CommonTextField(
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(
-                    if (onFocusChange != null) {
-                        Modifier
-                            .focusable()
-                            .onFocusChanged { focusState ->
-                                onFocusChange(focusState.isFocused)
-                            }
-                    } else {
-                        Modifier
-                    }
-                ),
+            modifier = Modifier.fillMaxWidth(),
             textStyle = AppTypography.R14px.copy(color = HighEmphasis),
             cursorBrush = SolidColor(HighEmphasis),
             visualTransformation = if (isPassword && !showPassword) PasswordVisualTransformation() else VisualTransformation.None,

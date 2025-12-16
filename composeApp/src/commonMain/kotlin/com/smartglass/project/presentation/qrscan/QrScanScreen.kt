@@ -15,13 +15,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/**
- * QR 스캔 화면
- * features_spec.md 및 Figma 디자인을 기반으로 구현
- * - 카메라 권한 확인
- * - QR 코드 스캔 UI 표시
- * - 스캔 완료 시 디바이스 등록 API 호출
- */
 @Composable
 fun QrScanScreen(
     viewModel: QrScanViewModel,
@@ -31,18 +24,14 @@ fun QrScanScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
-    // 스캔 시작
     LaunchedEffect(Unit) {
         viewModel.handleIntent(QrScanIntent.StartScanning)
     }
 
-    // 디바이스 등록 성공 시 콜백 호출
     LaunchedEffect(state) {
-        when (state) {
-            is QrScanState.DeviceRegistered -> {
-                onDeviceRegistered(state.appId)
-            }
-            else -> {}
+        val deviceRegisteredState = state as? QrScanState.DeviceRegistered
+        deviceRegisteredState?.let {
+            onDeviceRegistered(it.appId)
         }
     }
 
@@ -66,10 +55,6 @@ fun QrScanScreen(
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    // TODO: 실제 QR 코드 스캔 UI 구현
-                    // - 카메라 프리뷰
-                    // - 스캔 영역 표시
-                    // - 스캔 완료 시 QrScanIntent.QrCodeScanned 호출
                 }
                 is QrScanState.RegisteringDevice -> {
                     Text(
@@ -80,8 +65,9 @@ fun QrScanScreen(
                     )
                 }
                 is QrScanState.Error -> {
+                    val errorState = state
                     Text(
-                        text = state.message,
+                        text = errorState.message,
                         color = Color.Red,
                         fontSize = 16.sp,
                         textAlign = TextAlign.Center
