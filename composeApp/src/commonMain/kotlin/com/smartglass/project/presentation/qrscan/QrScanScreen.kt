@@ -12,11 +12,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartglass.project.ui.theme.Primary
-import network.chaintech.kmp_qr_kit.QrKitScanner
+import network.chaintech.qr_kit.QrScanner
 
 /**
  * QR 스캔 화면
- * kmp-qr-kit 라이브러리 사용
+ * QRKit 3.0.6 라이브러리 사용
  * features_spec.md: 2. 로그인 화면 - QR 코드 스캔 참고
  */
 @Composable
@@ -46,12 +46,15 @@ fun QrScanScreen(
     ) {
         when (val currentState = state) {
             is QrScanState.Idle, is QrScanState.Scanning -> {
-                // QR 스캔 UI
-                QrKitScanner(
+                // QR 스캔 UI (QRKit 3.0.6)
+                QrScanner(
                     modifier = Modifier.fillMaxSize(),
-                    onScanSuccess = { qrData ->
+                    flashlightOn = false,
+                    openImagePicker = false,
+                    onCompletion = { qrData ->
                         viewModel.handleIntent(QrScanIntent.QrCodeScanned(qrData))
                     },
+                    imagePickerHandler = { /* 이미지 피커 불필요 */ },
                     onFailure = { error ->
                         viewModel.handleIntent(QrScanIntent.ScanError(error))
                     }

@@ -16,7 +16,7 @@ kotlin = "2.2.21"
 ktor = "3.0.2"
 kotlinx-serialization = "1.7.3"
 multiplatform-settings = "1.2.0"
-qr-kit = "2.0.0"
+qr-kit = "3.0.6"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
