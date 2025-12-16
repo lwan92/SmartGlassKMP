@@ -56,6 +56,13 @@ kotlin {
             
             // Kotlinx Serialization
             implementation(libs.kotlinx.serialization.json)
+            
+            // Multiplatform Settings
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.no.arg)
+            
+            // QR Code Scanner
+            implementation(libs.qr.kit)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -93,4 +100,3 @@ android {
 dependencies {
     debugImplementation(compose.uiTooling)
 }
-

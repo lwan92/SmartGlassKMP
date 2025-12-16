@@ -2,6 +2,8 @@ package com.smartglass.project.presentation.intro
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.smartglass.project.data.local.PreferencesManager
+import com.smartglass.project.platform.permissions.PermissionManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,7 +14,10 @@ import kotlinx.coroutines.launch
  * Intro 화면 ViewModel
  * features_spec.md: 1. Intro 화면 사용자 행동 및 앱 반응 참고
  */
-class IntroViewModel : ViewModel() {
+class IntroViewModel(
+    private val preferencesManager: PreferencesManager,
+    private val permissionManager: PermissionManager
+) : ViewModel() {
     private val _state = MutableStateFlow<IntroState>(IntroState.Idle)
     val state: StateFlow<IntroState> = _state.asStateFlow()
     
@@ -47,11 +52,28 @@ class IntroViewModel : ViewModel() {
     private fun checkPermissions() {
         _state.value = IntroState.CheckingPermissions
         
-        // TODO: 실제 권한 확인 로직 (expect/actual)
-        // 지금은 권한이 있다고 가정
         viewModelScope.launch {
-            delay(500)
-            onPermissionsGranted()
+            try {
+                val hasPermissions = permissionManager.checkPermissions()
+                
+                if (hasPermissions) {
+                    onPermissionsGranted()
+                } else {
+                    // 권한 요청 시도
+                    _state.value = IntroState.RequestingPermissions
+                    val granted = permissionManager.requestPermissions()
+                    
+                    if (granted) {
+                        onPermissionsGranted()
+                    } else {
+                        onPermissionsDenied()
+                    }
+                }
+            } catch (e: Exception) {
+                _state.value = IntroState.Error(e.message ?: "권한 확인 실패")
+                delay(2000)
+                onPermissionsDenied()
+            }
         }
     }
     
@@ -65,7 +87,6 @@ class IntroViewModel : ViewModel() {
         // features_spec.md: Input: 권한 거부
         // Output: 권한 안내 토스트 표시, 로그인 화면으로 이동
         viewModelScope.launch {
-            // TODO: 토스트 표시
             delay(1000)
             _state.value = IntroState.NavigateToLogin
         }
@@ -75,11 +96,11 @@ class IntroViewModel : ViewModel() {
         _state.value = IntroState.CheckingLogin
         
         viewModelScope.launch {
-            // TODO: 로컬 스토리지에서 토큰 확인
-            val hasToken = false // TODO: 실제 토큰 확인
-            val isDeviceRegistered = false // TODO: 실제 디바이스 등록 여부 확인
+            val hasRefreshToken = preferencesManager.getRefreshToken() != null
+            val isDeviceRegistered = preferencesManager.isDeviceRegistered()
+            val isAutoLoginEnabled = preferencesManager.isAutoLoginEnabled()
             
-            if (hasToken && isDeviceRegistered) {
+            if (hasRefreshToken && isDeviceRegistered && isAutoLoginEnabled) {
                 // features_spec.md: Input: 자동 로그인 가능 (토큰 존재 + 디바이스 등록됨)
                 // Output: 자동 로그인 시도
                 tryAutoLogin()
