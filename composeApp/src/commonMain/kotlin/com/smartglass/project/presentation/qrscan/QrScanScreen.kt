@@ -46,7 +46,7 @@ fun QrScanScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            when (state) {
+            when (val currentState = state) {
                 is QrScanState.Scanning -> {
                     Text(
                         text = "QR 코드를 스캔해주세요",
@@ -65,9 +65,8 @@ fun QrScanScreen(
                     )
                 }
                 is QrScanState.Error -> {
-                    val errorState = state
                     Text(
-                        text = errorState.message,
+                        text = currentState.message,
                         color = Color.Red,
                         fontSize = 16.sp,
                         textAlign = TextAlign.Center

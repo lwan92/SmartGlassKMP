@@ -63,15 +63,10 @@ fun PasswordResetScreen(
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        val idleState = when (state) {
-            is PasswordResetState.Idle -> state
-            else -> null
-        }
-        
-        when (state) {
+        when (val currentState = state) {
             is PasswordResetState.Idle -> {
                 CommonTextField(
-                    value = idleState?.currentPassword ?: "",
+                    value = currentState.currentPassword,
                     onValueChange = { 
                         viewModel.handleIntent(
                             PasswordResetIntent.UpdateCurrentPassword(it)
@@ -79,7 +74,7 @@ fun PasswordResetScreen(
                     },
                     placeholder = "현재 비밀번호",
                     isPassword = true,
-                    showPassword = idleState?.showCurrentPassword ?: false,
+                    showPassword = currentState.showCurrentPassword,
                     onTogglePasswordVisibility = {
                         viewModel.handleIntent(
                             PasswordResetIntent.ToggleCurrentPasswordVisibility
@@ -91,7 +86,7 @@ fun PasswordResetScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 CommonTextField(
-                    value = idleState?.newPassword ?: "",
+                    value = currentState.newPassword,
                     onValueChange = { 
                         viewModel.handleIntent(
                             PasswordResetIntent.UpdateNewPassword(it)
@@ -99,7 +94,7 @@ fun PasswordResetScreen(
                     },
                     placeholder = "새 비밀번호",
                     isPassword = true,
-                    showPassword = idleState?.showNewPassword ?: false,
+                    showPassword = currentState.showNewPassword,
                     onTogglePasswordVisibility = {
                         viewModel.handleIntent(
                             PasswordResetIntent.ToggleNewPasswordVisibility
@@ -111,7 +106,7 @@ fun PasswordResetScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 CommonTextField(
-                    value = idleState?.confirmPassword ?: "",
+                    value = currentState.confirmPassword,
                     onValueChange = { 
                         viewModel.handleIntent(
                             PasswordResetIntent.UpdateConfirmPassword(it)
@@ -119,7 +114,7 @@ fun PasswordResetScreen(
                     },
                     placeholder = "새 비밀번호 확인",
                     isPassword = true,
-                    showPassword = idleState?.showConfirmPassword ?: false,
+                    showPassword = currentState.showConfirmPassword,
                     onTogglePasswordVisibility = {
                         viewModel.handleIntent(
                             PasswordResetIntent.ToggleConfirmPasswordVisibility
@@ -141,7 +136,7 @@ fun PasswordResetScreen(
                     color = Color.Red
                 )
                 
-                idleState?.validationError?.let { error ->
+                currentState.validationError?.let { error ->
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = error,
@@ -157,7 +152,7 @@ fun PasswordResetScreen(
                     onClick = {
                         viewModel.handleIntent(PasswordResetIntent.ResetPassword)
                     },
-                    enabled = idleState?.isResetEnabled ?: false,
+                    enabled = currentState.isResetEnabled,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -171,9 +166,8 @@ fun PasswordResetScreen(
                 )
             }
             is PasswordResetState.Error -> {
-                val errorState = state
                 Text(
-                    text = errorState.message,
+                    text = currentState.message,
                     fontSize = 14.sp,
                     color = Color.Red,
                     textAlign = TextAlign.Center,
