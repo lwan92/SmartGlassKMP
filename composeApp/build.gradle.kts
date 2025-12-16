@@ -62,7 +62,7 @@ kotlin {
             implementation(libs.multiplatform.settings.no.arg)
             
             // QR Code Scanner
-            implementation(libs.easyqrscan.scanner)
+            implementation(libs.kscan)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

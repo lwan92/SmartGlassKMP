@@ -16,7 +16,7 @@ kotlin = "2.2.21"
 ktor = "3.0.2"
 kotlinx-serialization = "1.7.3"
 multiplatform-settings = "1.2.0"
-easyqrscan = "0.5.0"
+kscan = "0.4.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -41,7 +41,7 @@ ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "kto
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatform-settings" }
 multiplatform-settings-no-arg = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "multiplatform-settings" }
-easyqrscan-scanner = { module = "io.github.kalinjul.easyqrscan:scanner", version.ref = "easyqrscan" }
+kscan = { module = "io.github.ismai117:kscan", version.ref = "kscan" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

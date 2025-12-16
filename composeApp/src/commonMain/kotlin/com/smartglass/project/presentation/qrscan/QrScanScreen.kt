@@ -12,11 +12,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartglass.project.ui.theme.Primary
-import io.github.kalinjul.easyqrscan.ScannerWithPermissions
+import com.ismai117.kscan.KScanner
 
 /**
  * QR 스캔 화면
- * EasyQRScan 라이브러리 사용
+ * KScan 라이브러리 사용
  * features_spec.md: 2. 로그인 화면 - QR 코드 스캔 참고
  */
 @Composable
@@ -46,12 +46,14 @@ fun QrScanScreen(
     ) {
         when (val currentState = state) {
             is QrScanState.Idle, is QrScanState.Scanning -> {
-                // QR 스캔 UI (EasyQRScan)
-                ScannerWithPermissions(
+                // QR 스캔 UI (KScan)
+                KScanner(
                     modifier = Modifier.fillMaxSize(),
-                    onScanned = { result ->
+                    onResult = { result ->
                         viewModel.handleIntent(QrScanIntent.QrCodeScanned(result))
-                        false // 스캔 후 중지 (한 번만 스캔)
+                    },
+                    onFailure = { error ->
+                        viewModel.handleIntent(QrScanIntent.ScanError(error))
                     }
                 )
                 
