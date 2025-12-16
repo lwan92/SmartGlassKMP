@@ -12,11 +12,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartglass.project.ui.theme.Primary
-import network.chaintech.qr_kit.QrScanner
+import io.github.kalinjul.easyqrscan.QrCodeScanner
 
 /**
  * QR 스캔 화면
- * QRKit 3.0.6 라이브러리 사용
+ * EasyQRScan 라이브러리 사용
  * features_spec.md: 2. 로그인 화면 - QR 코드 스캔 참고
  */
 @Composable
@@ -46,17 +46,11 @@ fun QrScanScreen(
     ) {
         when (val currentState = state) {
             is QrScanState.Idle, is QrScanState.Scanning -> {
-                // QR 스캔 UI (QRKit 3.0.6)
-                QrScanner(
+                // QR 스캔 UI (EasyQRScan)
+                QrCodeScanner(
                     modifier = Modifier.fillMaxSize(),
-                    flashlightOn = false,
-                    openImagePicker = false,
-                    onCompletion = { qrData ->
+                    onScanned = { qrData ->
                         viewModel.handleIntent(QrScanIntent.QrCodeScanned(qrData))
-                    },
-                    imagePickerHandler = { /* 이미지 피커 불필요 */ },
-                    onFailure = { error ->
-                        viewModel.handleIntent(QrScanIntent.ScanError(error))
                     }
                 )
                 
@@ -64,7 +58,9 @@ fun QrScanScreen(
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 48.dp),
+                        .padding(top = 48.dp)
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -76,7 +72,7 @@ fun QrScanScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "관리자로부터 받은 QR 코드를\n프레임 안에 맞춰주세요",
-                        color = Color.White.copy(alpha = 0.8f),
+                        color = Color.White.copy(alpha = 0.9f),
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center
                     )
