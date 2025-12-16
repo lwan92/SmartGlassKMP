@@ -12,7 +12,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartglass.project.ui.theme.Primary
-import io.github.kalinjul.easyqrscan.QrCodeScanner
+import io.github.kalinjul.easyqrscan.ScannerWithPermissions
 
 /**
  * QR 스캔 화면
@@ -47,10 +47,11 @@ fun QrScanScreen(
         when (val currentState = state) {
             is QrScanState.Idle, is QrScanState.Scanning -> {
                 // QR 스캔 UI (EasyQRScan)
-                QrCodeScanner(
+                ScannerWithPermissions(
                     modifier = Modifier.fillMaxSize(),
-                    onScanned = { qrData ->
-                        viewModel.handleIntent(QrScanIntent.QrCodeScanned(qrData))
+                    onScanned = { result ->
+                        viewModel.handleIntent(QrScanIntent.QrCodeScanned(result))
+                        false // 스캔 후 중지 (한 번만 스캔)
                     }
                 )
                 
