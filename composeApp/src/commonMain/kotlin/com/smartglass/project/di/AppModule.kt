@@ -3,7 +3,6 @@ package com.smartglass.project.di
 import com.smartglass.project.data.local.PreferencesManager
 import com.smartglass.project.data.local.PreferencesManagerImpl
 import com.smartglass.project.data.local.createSettings
-import com.smartglass.project.data.network.HttpClientFactory
 import com.smartglass.project.data.remote.api.AuthApi
 import com.smartglass.project.data.repository.AuthRepositoryImpl
 import com.smartglass.project.domain.repository.AuthRepository
@@ -14,21 +13,33 @@ import com.smartglass.project.presentation.intro.IntroViewModel
 import com.smartglass.project.presentation.login.LoginViewModel
 import com.smartglass.project.presentation.passwordreset.PasswordResetViewModel
 import com.smartglass.project.presentation.qrscan.QrScanViewModel
+import io.ktor.client.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.json.Json
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
-val localStorageModule = module {
-    single { createSettings() }
-    single<PreferencesManager> { PreferencesManagerImpl(get()) }
-}
-
-val platformModule = module {
-    single { createPermissionManager() }
-}
+/**
+ * Koin DI 모듈 설정
+ */
 
 val networkModule = module {
-    single { HttpClientFactory.create() }
+    single {
+        HttpClient {
+            install(ContentNegotiation) {
+                json(Json {
+                    ignoreUnknownKeys = true
+                    prettyPrint = true
+                    isLenient = true
+                })
+            }
+        }
+    }
+}
+
+val apiModule = module {
     single { AuthApi(get()) }
 }
 
@@ -43,20 +54,30 @@ val useCaseModule = module {
 
 val viewModelModule = module {
     viewModel { IntroViewModel(get(), get()) }
-    viewModel { LoginViewModel(get()) }
-    viewModel { QrScanViewModel(get()) }
+    viewModel { LoginViewModel(get(), get()) }
+    viewModel { QrScanViewModel(get(), get()) }
     viewModel { PasswordResetViewModel() }
+}
+
+val localStorageModule = module {
+    single { createSettings() }
+    single<PreferencesManager> { PreferencesManagerImpl(get()) }
+}
+
+val platformModule = module {
+    single { createPermissionManager() }
 }
 
 fun initKoin() {
     startKoin {
         modules(
-            localStorageModule,
-            platformModule,
             networkModule,
+            apiModule,
             repositoryModule,
             useCaseModule,
-            viewModelModule
+            viewModelModule,
+            localStorageModule,
+            platformModule
         )
     }
 }

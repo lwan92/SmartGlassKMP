@@ -170,7 +170,6 @@ class LoginViewModel(
                             _state.value = LoginState.Idle(
                                 username = currentState.username,
                                 password = currentState.password,
-                                autoLogin = currentState.autoLogin,
                                 isDeviceRegistered = currentState.isDeviceRegistered
                             )
                         }
@@ -210,17 +209,6 @@ class LoginViewModel(
                             errorCode = null,
                             message = error.message
                         )
-                        
-                        // Idle 상태로 복귀
-                        viewModelScope.launch {
-                            kotlinx.coroutines.delay(3000)
-                            _state.value = LoginState.Idle(
-                                username = currentState.username,
-                                password = currentState.password,
-                                autoLogin = currentState.autoLogin,
-                                isDeviceRegistered = currentState.isDeviceRegistered
-                            )
-                        }
                     }
                 )
             }

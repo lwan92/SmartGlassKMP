@@ -2,6 +2,7 @@ package com.smartglass.project.presentation.qrscan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.smartglass.project.data.local.PreferencesManager
 import com.smartglass.project.domain.usecase.RegisterDeviceUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,7 +11,8 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 class QrScanViewModel(
-    private val registerDeviceUseCase: RegisterDeviceUseCase
+    private val registerDeviceUseCase: RegisterDeviceUseCase,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
     private val _state = MutableStateFlow<QrScanState>(QrScanState.Idle)
     val state: StateFlow<QrScanState> = _state.asStateFlow()
@@ -45,6 +47,9 @@ class QrScanViewModel(
             
             result.fold(
                 onSuccess = { appId ->
+                    // 디바이스 등록 성공 → PreferencesManager에 저장
+                    preferencesManager.setDeviceRegistered(true)
+                    
                     _state.value = QrScanState.DeviceRegistered(appId = appId)
                 },
                 onFailure = { error ->
