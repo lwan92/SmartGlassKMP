@@ -2,11 +2,9 @@ package com.smartglass.project.platform.qr
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.interop.UIKitView
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.AVFoundation.*
-import platform.CoreGraphics.CGRect
 import platform.Foundation.NSError
 import platform.UIKit.UIView
 import platform.darwin.NSObject
@@ -26,24 +24,26 @@ actual fun QrScanner(
     onError: (String) -> Unit
 ) {
     var hasScanned by remember { mutableStateOf(false) }
+    var captureSession: AVCaptureSession? by remember { mutableStateOf(null) }
     
     DisposableEffect(Unit) {
         hasScanned = false
-        onDispose { }
+        onDispose {
+            captureSession?.stopRunning()
+        }
     }
     
     UIKitView(
         factory = {
             val view = UIView()
-            val captureSession = AVCaptureSession()
+            val session = AVCaptureSession()
+            captureSession = session
             
             // 카메라 디바이스 설정
             val videoDevice = AVCaptureDevice.defaultDeviceWithMediaType(AVMediaTypeVideo)
             
             if (videoDevice == null) {
-                dispatch_async(dispatch_get_main_queue()) {
-                    onError("카메라를 찾을 수 없습니다")
-                }
+                onError("카메라를 찾을 수 없습니다")
                 return@UIKitView view
             }
             
@@ -55,26 +55,22 @@ actual fun QrScanner(
             ) as? AVCaptureDeviceInput
             
             if (videoInput == null) {
-                dispatch_async(dispatch_get_main_queue()) {
-                    onError("카메라 접근 실패")
-                }
+                onError("카메라 접근 실패")
                 return@UIKitView view
             }
             
-            if (captureSession.canAddInput(videoInput as AVCaptureInput)) {
-                captureSession.addInput(videoInput as AVCaptureInput)
+            if (session.canAddInput(videoInput as AVCaptureInput)) {
+                session.addInput(videoInput as AVCaptureInput)
             } else {
-                dispatch_async(dispatch_get_main_queue()) {
-                    onError("카메라 입력 추가 실패")
-                }
+                onError("카메라 입력 추가 실패")
                 return@UIKitView view
             }
             
             // 메타데이터 출력 설정
             val metadataOutput = AVCaptureMetadataOutput()
             
-            if (captureSession.canAddOutput(metadataOutput as AVCaptureOutput)) {
-                captureSession.addOutput(metadataOutput as AVCaptureOutput)
+            if (session.canAddOutput(metadataOutput as AVCaptureOutput)) {
+                session.addOutput(metadataOutput as AVCaptureOutput)
                 
                 // QR 코드 타입 설정
                 metadataOutput.setMetadataObjectTypes(
@@ -108,22 +104,18 @@ actual fun QrScanner(
                     dispatch_get_main_queue()
                 )
             } else {
-                dispatch_async(dispatch_get_main_queue()) {
-                    onError("메타데이터 출력 추가 실패")
-                }
+                onError("메타데이터 출력 추가 실패")
                 return@UIKitView view
             }
             
             // 프리뷰 레이어 설정
-            val previewLayer = AVCaptureVideoPreviewLayer(session = captureSession)
+            val previewLayer = AVCaptureVideoPreviewLayer(session = session)
             previewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill
             previewLayer.frame = view.bounds
             view.layer.addSublayer(previewLayer)
             
-            // 캡처 세션 시작
-            dispatch_async(dispatch_get_main_queue()) {
-                captureSession.startRunning()
-            }
+            // 캡처 세션 시작 (메인 스레드에서 직접)
+            session.startRunning()
             
             view
         },
@@ -136,6 +128,7 @@ actual fun QrScanner(
         },
         onRelease = { view ->
             // 리소스 정리
+            captureSession?.stopRunning()
             view.layer.sublayers?.forEach { sublayer ->
                 (sublayer as? CALayer)?.removeFromSuperlayer()
             }

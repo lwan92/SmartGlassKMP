@@ -23,7 +23,6 @@ import smartglass.composeapp.generated.resources.logo
  * 로그인 화면
  * Figma: https://www.figma.com/design/diRXHJDeWdqsBzI1qcA8I4/SmartGlass-Design?node-id=7109-46090
  * features_spec.md: 2. 로그인 화면 참고
- * ui_design_spec.md: 1. 로그인 화면 (f_login.xml) 참고
  */
 @Composable
 fun LoginScreen(
@@ -59,15 +58,15 @@ fun LoginScreen(
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(108.dp))
+            Spacer(modifier = Modifier.height(68.dp))
 
-            // 로고 영역
+            // 로고 영역 (Figma 기준)
             Image(
                 painter = painterResource(Res.drawable.logo),
                 contentDescription = "Logo",
                 modifier = Modifier
-                    .width(180.dp)
-                    .height(40.dp),
+                    .fillMaxWidth(0.6f)
+                    .height(80.dp),
                 contentScale = ContentScale.Fit
             )
 
@@ -139,21 +138,7 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // QR 코드 로그인 버튼
-                    CommonButton(
-                        text = "QR 코드 로그인",
-                        onClick = { 
-                            viewModel.handleIntent(LoginIntent.ClickQrLogin) 
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        backgroundColor = Color.Transparent,
-                        textColor = Primary,
-                        borderColor = Primary
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 아이디/비밀번호 찾기
+                    // 아이디/비밀번호 찾기 (Figma 기준 - QR 버튼 제거)
                     Row(
                         modifier = Modifier.clickable { 
                             viewModel.handleIntent(LoginIntent.ClickFindId)
@@ -196,7 +181,7 @@ fun LoginScreen(
                 }
                 
                 is LoginState.LoginFailure -> {
-                    // 에러 메시지 표시 후 다시 Idle로
+                    // 에러 메시지 표시
                     Text(
                         text = currentState.message ?: "로그인에 실패했습니다.",
                         style = AppTypography.M14px,
@@ -207,14 +192,13 @@ fun LoginScreen(
                 }
                 
                 else -> {
-                    // 다른 상태에서는 빈 공간
                     Spacer(modifier = Modifier.height(200.dp))
                 }
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // 하단 브랜딩
+            // 하단 브랜딩 (Figma 기준)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
