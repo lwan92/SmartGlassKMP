@@ -33,6 +33,8 @@ val networkModule = module {
                     ignoreUnknownKeys = true
                     prettyPrint = true
                     isLenient = true
+                    encodeDefaults = true  // ✅ 기본값 필드도 JSON에 포함
+                    explicitNulls = false  // ✅ null 값도 JSON에 명시적으로 포함
                 })
             }
         }
