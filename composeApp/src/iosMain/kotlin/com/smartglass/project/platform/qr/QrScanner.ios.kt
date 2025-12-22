@@ -14,11 +14,12 @@ import platform.darwin.dispatch_get_main_queue
 import platform.darwin.dispatch_async
 import platform.QuartzCore.CALayer
 import platform.UIKit.UIScreen
+import platform.darwin.dispatch_queue_t
 
 /**
  * iOS QR 스캐너 구현
  * AVFoundation의 AVCaptureSession 사용
- * 렌더링 및 디버깅 강화 버전
+ * QR 코드 스캔 개선 버전
  */
 @OptIn(ExperimentalForeignApi::class)
 @Composable
@@ -29,6 +30,7 @@ actual fun QrScanner(
 ) {
     var hasScanned by remember { mutableStateOf(false) }
     var captureSession: AVCaptureSession? by remember { mutableStateOf(null) }
+    var delegateQueue: dispatch_queue_t? by remember { mutableStateOf(null) }
     
     DisposableEffect(Unit) {
         NSLog("🎥 QrScanner: Composable 시작")
@@ -45,7 +47,7 @@ actual fun QrScanner(
             NSLog("🎥 QrScanner: UIKitView factory 시작")
             
             val view = UIView()
-            view.backgroundColor = platform.UIKit.UIColor.redColor // 디버그용 빨간색
+            view.backgroundColor = platform.UIKit.UIColor.blackColor
             view.clipsToBounds = true
             
             NSLog("🎥 QrScanner: UIView 생성 완료")
@@ -94,7 +96,7 @@ actual fun QrScanner(
             
             NSLog("✅ QrScanner: 카메라 입력 생성 완료")
             
-            // 세션 설정
+            // 세션 설정 시작
             session.beginConfiguration()
             
             if (session.canAddInput(videoInput as AVCaptureInput)) {
@@ -125,33 +127,46 @@ actual fun QrScanner(
             }
             
             session.commitConfiguration()
+            NSLog("✅ QrScanner: 세션 설정 완료")
             
-            // QR 코드 타입 설정
-            metadataOutput.setMetadataObjectTypes(
-                listOf(AVMetadataObjectTypeQRCode)
-            )
-            NSLog("✅ QrScanner: QR 코드 타입 설정 완료")
-            
-            // 메타데이터 델리게이트 설정
+            // 메타데이터 델리게이트 설정 (먼저!)
             val delegate = object : NSObject(), AVCaptureMetadataOutputObjectsDelegateProtocol {
                 override fun captureOutput(
                     output: AVCaptureOutput,
                     didOutputMetadataObjects: List<*>,
                     fromConnection: AVCaptureConnection
                 ) {
-                    if (hasScanned) return
+                    NSLog("📡 QrScanner: captureOutput 콜백 호출됨! (메타데이터 개수: ${didOutputMetadataObjects.size})")
+                    
+                    if (hasScanned) {
+                        NSLog("⚠️ QrScanner: 이미 스캔 완료, 무시")
+                        return
+                    }
                     
                     val metadataObjects = didOutputMetadataObjects
                     if (metadataObjects.isNotEmpty()) {
-                        NSLog("📱 QrScanner: QR 코드 감지됨!")
-                        val metadataObj = metadataObjects.first() as? AVMetadataMachineReadableCodeObject
-                        metadataObj?.stringValue?.let { qrCode ->
-                            NSLog("✅ QrScanner: QR 코드 스캔 성공 - $qrCode")
-                            hasScanned = true
-                            dispatch_async(dispatch_get_main_queue()) {
-                                onQrCodeScanned(qrCode)
-                            }
+                        NSLog("📱 QrScanner: ${metadataObjects.size}개의 메타데이터 객체 감지!")
+                        
+                        metadataObjects.forEach { obj ->
+                            NSLog("🔍 QrScanner: 객체 타입 - ${obj}")
                         }
+                        
+                        val metadataObj = metadataObjects.first() as? AVMetadataMachineReadableCodeObject
+                        if (metadataObj != null) {
+                            NSLog("✅ QrScanner: AVMetadataMachineReadableCodeObject로 캐스팅 성공")
+                            metadataObj.stringValue?.let { qrCode ->
+                                NSLog("✅✅✅ QrScanner: QR 코드 스캔 성공! ✅✅✅")
+                                NSLog("📱 QR 데이터: $qrCode")
+                                hasScanned = true
+                                dispatch_async(dispatch_get_main_queue()) {
+                                    onQrCodeScanned(qrCode)
+                                }
+                            } ?: NSLog("❌ QrScanner: stringValue가 null")
+                        } else {
+                            NSLog("❌ QrScanner: AVMetadataMachineReadableCodeObject로 캐스팅 실패")
+                        }
+                    } else {
+                        NSLog("ℹ️ QrScanner: 메타데이터 객체가 비어있음")
                     }
                 }
             }
@@ -160,8 +175,26 @@ actual fun QrScanner(
                 delegate,
                 dispatch_get_main_queue()
             )
+            NSLog("✅ QrScanner: 델리게이트 설정 완료")
             
-            // 프리뷰 레이어 생성 및 설정 (메인 스레드)
+            // QR 코드 타입 설정 (델리게이트 설정 후)
+            val availableTypes = metadataOutput.availableMetadataObjectTypes
+            NSLog("📋 QrScanner: 사용 가능한 메타데이터 타입: ${availableTypes.size}개")
+            
+            if (availableTypes.contains(AVMetadataObjectTypeQRCode)) {
+                metadataOutput.setMetadataObjectTypes(
+                    listOf(AVMetadataObjectTypeQRCode)
+                )
+                NSLog("✅ QrScanner: QR 코드 타입 설정 완료")
+            } else {
+                NSLog("❌ QrScanner: QR 코드 타입을 사용할 수 없음!")
+                dispatch_async(dispatch_get_main_queue()) {
+                    onError("QR 코드 타입을 사용할 수 없습니다")
+                }
+                return@UIKitView view
+            }
+            
+            // 프리뷰 레이어 생성 및 세션 시작
             dispatch_async(dispatch_get_main_queue()) {
                 val screenBounds = UIScreen.mainScreen.bounds
                 
@@ -174,26 +207,24 @@ actual fun QrScanner(
                     val previewLayer = AVCaptureVideoPreviewLayer(session = session)
                     previewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill
                     
-                    // 명시적으로 프레임 설정
-                    previewLayer.frame = CGRectMake(
-                        0.0,
-                        0.0,
-                        screenWidth,
-                        screenHeight
-                    )
-                    
+                    previewLayer.frame = CGRectMake(0.0, 0.0, screenWidth, screenHeight)
                     view.layer.insertSublayer(previewLayer, 0u)
                     
                     NSLog("✅ QrScanner: 프리뷰 레이어 추가 완료")
                 }
+                
+                // rectOfInterest 설정 (전체 화면)
+                // 주의: CGRect(x, y, width, height)는 (0, 0, 1, 1)로 정규화됨
+                metadataOutput.rectOfInterest = CGRectMake(0.0, 0.0, 1.0, 1.0)
+                NSLog("✅ QrScanner: rectOfInterest 설정 완료 (전체 화면)")
                 
                 // 세션 시작
                 session.startRunning()
                 
                 if (session.running) {
                     NSLog("✅✅✅ QrScanner: 카메라 세션 실행 중! ✅✅✅")
+                    NSLog("📱 QR 코드를 카메라에 비춰주세요...")
                     
-                    // 배경색을 투명으로 변경 (프리뷰가 보이도록)
                     view.backgroundColor = platform.UIKit.UIColor.clearColor
                 } else {
                     NSLog("❌ QrScanner: 카메라 세션 시작 실패")
@@ -205,11 +236,9 @@ actual fun QrScanner(
         },
         modifier = modifier,
         update = { view ->
-            // 뷰 크기 변경 시 프리뷰 레이어도 업데이트
             view.layer.sublayers?.firstOrNull()?.let { layer ->
                 (layer as? AVCaptureVideoPreviewLayer)?.let { previewLayer ->
                     previewLayer.frame = view.bounds
-                    NSLog("🔄 QrScanner: 프리뷰 레이어 크기 업데이트")
                 }
             }
         },
