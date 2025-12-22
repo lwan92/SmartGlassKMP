@@ -35,6 +35,9 @@ class RegisterDeviceUseCase(
         appVersion: String = "1.0.0"
     ): Result<String> {
         return try {
+            println("🟢 RegisterDeviceUseCase: QR 코드 데이터 파싱 시작")
+            println("🟢 QR 데이터: $qrCodeData")
+            
             // 1. QR 코드 데이터 파싱
             val json = Json { ignoreUnknownKeys = true }
             val qrJson = json.parseToJsonElement(qrCodeData).jsonObject
@@ -42,8 +45,13 @@ class RegisterDeviceUseCase(
             val uuid = qrJson["uuid"]?.jsonPrimitive?.content 
                 ?: return Result.failure(Exception("QR 코드에 uuid가 없습니다"))
             
+            println("🟢 파싱 성공 - uuid: $uuid")
+            println("🟢 deviceId: $deviceId")
+            
             // 2. 디바이스 등록
             val deviceType = "MOBILE" // TODO: 플랫폼에 따라 동적으로 설정
+            println("🟢 디바이스 등록 API 호출 시작 (uuid: $uuid, deviceId: $deviceId, deviceType: $deviceType)")
+            
             val deviceResult = authRepository.registerDevice(
                 uuid = uuid,
                 deviceId = deviceId,
@@ -51,17 +59,20 @@ class RegisterDeviceUseCase(
             )
             
             if (deviceResult.isFailure) {
+                val error = deviceResult.exceptionOrNull()
+                println("❌ 디바이스 등록 실패: ${error?.message}")
                 return Result.failure(
-                    deviceResult.exceptionOrNull() 
-                        ?: Exception("디바이스 등록 실패")
+                    error ?: Exception("디바이스 등록 실패")
                 )
             }
             
             val registeredDeviceId = deviceResult.getOrThrow()
+            println("🟢 디바이스 등록 성공 - registeredDeviceId: $registeredDeviceId")
             
             // 3. 앱 등록
             val appId = generateAppId()
             val appType = "MOBILE"
+            println("🟢 앱 등록 API 호출 시작 (deviceId: $registeredDeviceId, appId: $appId)")
             
             val appResult = authRepository.registerApp(
                 deviceId = registeredDeviceId,
@@ -71,18 +82,24 @@ class RegisterDeviceUseCase(
             )
             
             if (appResult.isFailure) {
+                val error = appResult.exceptionOrNull()
+                println("❌ 앱 등록 실패: ${error?.message}")
                 return Result.failure(
-                    appResult.exceptionOrNull() 
-                        ?: Exception("앱 등록 실패")
+                    error ?: Exception("앱 등록 실패")
                 )
             }
+            
+            val finalAppId = appResult.getOrThrow()
+            println("🟢 앱 등록 성공 - appId: $finalAppId")
             
             // 4. 브랜딩 이미지 다운로드 (TODO)
             
             // 5. 성공
-            Result.success(appResult.getOrThrow())
+            Result.success(finalAppId)
             
         } catch (e: Exception) {
+            println("❌ RegisterDeviceUseCase 예외 발생: ${e.message}")
+            e.printStackTrace()
             Result.failure(Exception("QR 코드 데이터 파싱 실패: ${e.message}"))
         }
     }
