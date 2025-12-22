@@ -8,6 +8,7 @@ import com.smartglass.project.data.remote.api.AuthApi
 import com.smartglass.project.data.repository.AuthRepositoryImpl
 import com.smartglass.project.domain.repository.AuthRepository
 import com.smartglass.project.domain.usecase.LoginUseCase
+import com.smartglass.project.domain.usecase.RegisterDeviceUseCase
 import com.smartglass.project.platform.permissions.createPermissionManager
 import com.smartglass.project.presentation.intro.IntroViewModel
 import com.smartglass.project.presentation.login.LoginViewModel
@@ -37,12 +38,13 @@ val repositoryModule = module {
 
 val useCaseModule = module {
     factory { LoginUseCase(get()) }
+    factory { RegisterDeviceUseCase(get()) }
 }
 
 val viewModelModule = module {
     viewModel { IntroViewModel(get(), get()) }
     viewModel { LoginViewModel(get()) }
-    viewModel { QrScanViewModel() }
+    viewModel { QrScanViewModel(get()) }
     viewModel { PasswordResetViewModel() }
 }
 

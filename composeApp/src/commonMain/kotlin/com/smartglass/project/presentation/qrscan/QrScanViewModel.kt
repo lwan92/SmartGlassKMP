@@ -2,12 +2,16 @@ package com.smartglass.project.presentation.qrscan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.smartglass.project.domain.usecase.RegisterDeviceUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
-class QrScanViewModel : ViewModel() {
+class QrScanViewModel(
+    private val registerDeviceUseCase: RegisterDeviceUseCase
+) : ViewModel() {
     private val _state = MutableStateFlow<QrScanState>(QrScanState.Idle)
     val state: StateFlow<QrScanState> = _state.asStateFlow()
 
@@ -29,12 +33,26 @@ class QrScanViewModel : ViewModel() {
         viewModelScope.launch {
             _state.value = QrScanState.RegisteringDevice
             
-            // TODO: 실제 디바이스 등록 API 호출
-            // val result = registerDeviceUseCase(qrData)
+            // TODO: 실제 deviceId 가져오기 (플랫폼별로 다름)
+            val randomId = Random.Default.nextLong()
+            val deviceId = "device-${randomId.toString(16)}"
             
-            // 임시로 성공 처리
-            kotlinx.coroutines.delay(1000)
-            _state.value = QrScanState.DeviceRegistered(appId = qrData)
+            val result = registerDeviceUseCase(
+                qrCodeData = qrData,
+                deviceId = deviceId,
+                appVersion = "1.0.0"
+            )
+            
+            result.fold(
+                onSuccess = { appId ->
+                    _state.value = QrScanState.DeviceRegistered(appId = appId)
+                },
+                onFailure = { error ->
+                    _state.value = QrScanState.Error(
+                        error.message ?: "디바이스 등록에 실패했습니다"
+                    )
+                }
+            )
         }
     }
     
