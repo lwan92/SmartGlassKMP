@@ -16,8 +16,13 @@ class QrScanViewModel(
 ) : ViewModel() {
     private val _state = MutableStateFlow<QrScanState>(QrScanState.Idle)
     val state: StateFlow<QrScanState> = _state.asStateFlow()
+    
+    init {
+        println("🔵 QrScanViewModel: 초기화 완료")
+    }
 
     fun handleIntent(intent: QrScanIntent) {
+        println("🔵 QrScanViewModel: handleIntent - $intent")
         when (intent) {
             is QrScanIntent.StartScanning -> startScanning()
             is QrScanIntent.QrCodeScanned -> onQrCodeScanned(intent.qrData)
@@ -28,10 +33,12 @@ class QrScanViewModel(
     }
 
     private fun startScanning() {
+        println("🔵 QrScanViewModel: startScanning 호출됨")
         _state.value = QrScanState.Scanning
     }
 
     private fun onQrCodeScanned(qrData: String) {
+        println("🔵 QrScanViewModel: onQrCodeScanned 호출됨 - qrData: $qrData")
         viewModelScope.launch {
             _state.value = QrScanState.RegisteringDevice
             
@@ -39,6 +46,7 @@ class QrScanViewModel(
             val randomId = Random.Default.nextLong()
             val deviceId = "device-${randomId.toString(16)}"
             
+            println("🔵 QrScanViewModel: RegisterDeviceUseCase 호출 시작")
             val result = registerDeviceUseCase(
                 qrCodeData = qrData,
                 deviceId = deviceId,
@@ -47,12 +55,14 @@ class QrScanViewModel(
             
             result.fold(
                 onSuccess = { appId ->
+                    println("🔵 QrScanViewModel: 디바이스 등록 성공 - appId: $appId")
                     // 디바이스 등록 성공 → PreferencesManager에 저장
                     preferencesManager.setDeviceRegistered(true)
                     
                     _state.value = QrScanState.DeviceRegistered(appId = appId)
                 },
                 onFailure = { error ->
+                    println("🔵 QrScanViewModel: 디바이스 등록 실패 - ${error.message}")
                     _state.value = QrScanState.Error(
                         error.message ?: "디바이스 등록에 실패했습니다"
                     )
@@ -62,10 +72,12 @@ class QrScanViewModel(
     }
     
     private fun onScanError(error: String) {
+        println("🔵 QrScanViewModel: onScanError - $error")
         _state.value = QrScanState.Error(error)
     }
 
     private fun registerDevice() {
+        println("🔵 QrScanViewModel: registerDevice 호출됨")
         _state.value = QrScanState.RegisteringDevice
         
         // TODO: 실제 디바이스 등록 로직 구현
@@ -76,6 +88,7 @@ class QrScanViewModel(
     }
 
     private fun closeScanner() {
+        println("🔵 QrScanViewModel: closeScanner 호출됨")
         _state.value = QrScanState.Idle
     }
 }
