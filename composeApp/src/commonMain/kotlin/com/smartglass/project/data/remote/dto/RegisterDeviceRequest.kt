@@ -13,7 +13,7 @@ data class RegisterDeviceRequest(
     val uuid: String,
     
     @SerialName("deviceId")
-    val deviceId: String,
+    val deviceId: String? = null,
     
     @SerialName("deviceType")
     val deviceType: String, // GLASS, MOBILE

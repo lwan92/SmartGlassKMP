@@ -42,9 +42,7 @@ class QrScanViewModel(
         viewModelScope.launch {
             _state.value = QrScanState.RegisteringDevice
             
-            // TODO: 실제 deviceId 가져오기 (플랫폼별로 다름)
-            val randomId = Random.Default.nextLong()
-            val deviceId = "device-${randomId.toString(16)}"
+            val deviceId = null
             
             println("🔵 QrScanViewModel: RegisterDeviceUseCase 호출 시작")
             val result = registerDeviceUseCase(

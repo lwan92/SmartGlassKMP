@@ -4,7 +4,6 @@ import com.smartglass.project.domain.repository.AuthRepository
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlin.random.Random
 
 /**
  * 디바이스 등록 UseCase
@@ -25,13 +24,13 @@ class RegisterDeviceUseCase(
      * - 디바이스 타입: GLASS 또는 MOBILE
      * 
      * @param qrCodeData QR 코드 스캔 결과 (JSON 문자열)
-     * @param deviceId 디바이스 고유 ID (UUID 또는 기기 ID)
+     * @param deviceId 디바이스 고유 ID (초기 등록 시 null, 재등록 시 기존 ID)
      * @param appVersion 앱 버전
      * @return Result<String> 성공 시 appId 반환
      */
     suspend operator fun invoke(
         qrCodeData: String,
-        deviceId: String,
+        deviceId: String? = null,  // ✅ 초기 등록 시 null
         appVersion: String = "1.0.0"
     ): Result<String> {
         return try {
@@ -46,7 +45,7 @@ class RegisterDeviceUseCase(
                 ?: return Result.failure(Exception("QR 코드에 uuid가 없습니다"))
             
             println("🟢 파싱 성공 - uuid: $uuid")
-            println("🟢 deviceId: $deviceId")
+            println("🟢 deviceId: $deviceId (초기 등록 시 null)")
             
             // 2. 디바이스 등록
             val deviceType = "MOBILE" // TODO: 플랫폼에 따라 동적으로 설정
@@ -54,7 +53,7 @@ class RegisterDeviceUseCase(
             
             val deviceResult = authRepository.registerDevice(
                 uuid = uuid,
-                deviceId = deviceId,
+                deviceId = deviceId,  // ✅ null로 전달 (초기 등록)
                 deviceType = deviceType
             )
             
@@ -106,7 +105,7 @@ class RegisterDeviceUseCase(
     
     private fun generateAppId(): String {
         // UUID 형식의 앱 ID 생성
-        val random = Random.Default.nextLong()
+        val random = kotlin.random.Random.Default.nextLong()
         return "app-${random.toString(16)}"
     }
 }

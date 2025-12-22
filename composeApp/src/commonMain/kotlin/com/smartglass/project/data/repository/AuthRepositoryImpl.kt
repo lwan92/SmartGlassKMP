@@ -43,7 +43,7 @@ class AuthRepositoryImpl(
     
     override suspend fun registerDevice(
         uuid: String,
-        deviceId: String,
+        deviceId: String?,
         deviceType: String
     ): Result<String> {
         return try {
