@@ -86,15 +86,11 @@ class LoginViewModel(
     private fun onFieldFocused() {
         val currentState = _state.value
         if (currentState is LoginState.Idle && !currentState.isDeviceRegistered) {
-            // features_spec.md: Input: 디바이스 미등록 상태에서 입력 필드 포커스
-            // Output: 디바이스 등록 팝업 표시
             _state.value = LoginState.DeviceRegistrationRequired
         }
     }
     
     private fun onDeviceRegistrationSuccess() {
-        // 디바이스 등록 성공 후 Idle 상태로 복귀
-        // PreferencesManager에서 최신 상태 가져오기
         val currentState = _state.value
         if (currentState is LoginState.Idle) {
             _state.value = currentState.copy(isDeviceRegistered = true)
@@ -104,7 +100,6 @@ class LoginViewModel(
     }
     
     private fun onDeviceRegistrationCancelled() {
-        // 디바이스 등록 취소 시 Idle 상태로 복귀
         _state.value = LoginState.Idle(isDeviceRegistered = false)
     }
     
@@ -142,29 +137,25 @@ class LoginViewModel(
                 val result = loginUseCase(
                     loginId = currentState.username,
                     password = currentState.password,
-                    appId = "temp-app-id", // TODO: 실제 appId 사용
+                    autoLogin = currentState.autoLogin,
+                    appId = "temp-app-id",
                     allowDuplicateLogin = false
                 )
                 
                 result.fold(
                     onSuccess = { loginResult ->
                         if (loginResult.isPasswordReset) {
-                            // features_spec.md: Input: 로그인 성공 + 비밀번호 재설정 필요
                             _state.value = LoginState.LoginSuccess(requiresPasswordReset = true)
                         } else {
-                            // features_spec.md: Input: 로그인 성공 + 정상
-                            // TODO: 토큰 저장 (PreferencesManager)
                             _state.value = LoginState.NavigateToHome
                         }
                     },
                     onFailure = { error ->
-                        // features_spec.md: Input: 로그인 실패
                         _state.value = LoginState.LoginFailure(
                             errorCode = null,
                             message = error.message
                         )
                         
-                        // 3초 후 Idle 상태로 복귀
                         viewModelScope.launch {
                             kotlinx.coroutines.delay(3000)
                             _state.value = LoginState.Idle(
@@ -181,7 +172,6 @@ class LoginViewModel(
     }
     
     private fun qrLogin() {
-        // TODO: QR 로그인 구현
         _state.value = LoginState.NavigateToQrScan
     }
     
@@ -196,13 +186,13 @@ class LoginViewModel(
                 val result = loginUseCase(
                     loginId = currentState.username,
                     password = currentState.password,
-                    appId = "temp-app-id", // TODO: 실제 appId 사용
+                    autoLogin = currentState.autoLogin,
+                    appId = "temp-app-id",
                     allowDuplicateLogin = true
                 )
                 
                 result.fold(
                     onSuccess = { loginResult ->
-                        // TODO: 토큰 저장 (PreferencesManager)
                         _state.value = LoginState.NavigateToHome
                     },
                     onFailure = { error ->
@@ -211,7 +201,6 @@ class LoginViewModel(
                             message = error.message
                         )
                         
-                        // Idle 상태로 복귀
                         viewModelScope.launch {
                             kotlinx.coroutines.delay(3000)
                             _state.value = LoginState.Idle(
