@@ -13,6 +13,7 @@ class AuthApi(private val httpClient: HttpClient) {
     private val json = Json { 
         prettyPrint = true
         ignoreUnknownKeys = true
+        encodeDefaults = true  // ✅ null 값도 JSON에 포함
     }
     
     suspend fun login(request: LoginRequest): LoginResponse {
