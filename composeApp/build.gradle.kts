@@ -23,6 +23,9 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
+            
+            // Bundle ID 설정
+            binaryOption("bundleId", "com.smartglass.project")
         }
     }
     

@@ -2,6 +2,7 @@ package com.smartglass.project.platform.qr
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.interop.UIKitView
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.AVFoundation.*
@@ -32,7 +33,6 @@ actual fun QrScanner(
     }
     
     UIKitView(
-        modifier = modifier,
         factory = {
             val view = UIView()
             val captureSession = AVCaptureSession()
@@ -127,6 +127,7 @@ actual fun QrScanner(
             
             view
         },
+        modifier = modifier,
         update = { view ->
             // 뷰 업데이트 시 프리뷰 레이어 크기 조정
             view.layer.sublayers?.firstOrNull()?.let { layer ->
