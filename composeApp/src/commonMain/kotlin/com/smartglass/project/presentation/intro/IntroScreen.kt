@@ -99,7 +99,7 @@ fun IntroScreen(
                     Text(
                         text = (state as IntroState.Error).message,
                         style = AppTypography.M14px,
-                        color = Color.Red,
+                        color = DestructiveText,
                         textAlign = TextAlign.Center
                     )
                 }

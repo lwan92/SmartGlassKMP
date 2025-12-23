@@ -3,6 +3,7 @@ package com.smartglass.project.presentation.intro
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.smartglass.project.data.local.PreferencesManager
+import com.smartglass.project.data.network.TokenRefreshCoordinator
 import com.smartglass.project.platform.permissions.PermissionManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +17,8 @@ import kotlinx.coroutines.launch
  */
 class IntroViewModel(
     private val preferencesManager: PreferencesManager,
-    private val permissionManager: PermissionManager
+    private val permissionManager: PermissionManager,
+    private val tokenRefreshCoordinator: TokenRefreshCoordinator
 ) : ViewModel() {
     private val _state = MutableStateFlow<IntroState>(IntroState.Idle)
     val state: StateFlow<IntroState> = _state.asStateFlow()
@@ -116,14 +118,24 @@ class IntroViewModel(
         _state.value = IntroState.AutoLoginInProgress
         
         viewModelScope.launch {
-            // TODO: 실제 자동 로그인 로직 (refreshToken 사용)
-            delay(1000)
-            
-            val success = false // TODO: 실제 결과
-            
-            if (success) {
-                onAutoLoginSuccess()
-            } else {
+            try {
+                // TokenRefreshCoordinator를 사용하여 토큰 갱신
+                val result = tokenRefreshCoordinator.awaitFreshAccessToken()
+                
+                result.fold(
+                    onSuccess = { accessToken ->
+                        // 토큰 갱신 성공 → 자동 로그인 성공
+                        onAutoLoginSuccess()
+                    },
+                    onFailure = { error ->
+                        // 토큰 갱신 실패 → 자동 로그인 실패
+                        preferencesManager.clearTokens() // 실패한 토큰 삭제
+                        onAutoLoginFailed()
+                    }
+                )
+            } catch (e: Exception) {
+                // 예외 발생 → 자동 로그인 실패
+                preferencesManager.clearTokens()
                 onAutoLoginFailed()
             }
         }

@@ -2,6 +2,7 @@ package com.smartglass.project.data.repository
 
 import com.smartglass.project.data.remote.api.AuthApi
 import com.smartglass.project.data.remote.dto.*
+import com.smartglass.project.domain.model.AuthException
 import com.smartglass.project.domain.model.LoginResult
 import com.smartglass.project.domain.repository.AuthRepository
 
@@ -32,9 +33,16 @@ class AuthRepositoryImpl(
             if (response.success && response.data != null) {
                 Result.success(response.data.toDomain())
             } else {
+                // 중복 로그인 에러 코드(1018) 확인
+                val errorCode = response.code
                 val errorMessage = response.message 
-                    ?: "로그인에 실패했습니다. (코드: ${response.code})"
-                Result.failure(Exception(errorMessage))
+                    ?: "로그인에 실패했습니다. (코드: $errorCode)"
+                
+                if (errorCode == "1018") {
+                    Result.failure(AuthException.DuplicateLogin(errorMessage))
+                } else {
+                    Result.failure(AuthException.Other(errorMessage, errorCode))
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)

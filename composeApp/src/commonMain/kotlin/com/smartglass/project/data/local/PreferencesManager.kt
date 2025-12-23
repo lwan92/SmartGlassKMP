@@ -28,6 +28,10 @@ interface PreferencesManager {
     fun setDeviceRegistered(registered: Boolean)
     fun isDeviceRegistered(): Boolean
     
+    // Base URL 관리
+    fun saveBaseUrl(url: String)
+    fun getBaseUrl(): String?
+    
     // 전체 삭제
     fun clearAll()
 }

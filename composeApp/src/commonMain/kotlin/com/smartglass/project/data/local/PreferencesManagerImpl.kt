@@ -20,6 +20,7 @@ class PreferencesManagerImpl(
         private const val KEY_AUTO_LOGIN = "auto_login"
         private const val KEY_APP_ID = "app_id"
         private const val KEY_DEVICE_REGISTERED = "device_registered"
+        private const val KEY_BASE_URL = "base_url"
     }
     
     override fun saveAccessToken(token: String) {
@@ -81,6 +82,14 @@ class PreferencesManagerImpl(
     
     override fun isDeviceRegistered(): Boolean {
         return settings.getBoolean(KEY_DEVICE_REGISTERED, false)
+    }
+    
+    override fun saveBaseUrl(url: String) {
+        settings[KEY_BASE_URL] = url
+    }
+    
+    override fun getBaseUrl(): String? {
+        return settings.getStringOrNull(KEY_BASE_URL)
     }
     
     override fun clearAll() {

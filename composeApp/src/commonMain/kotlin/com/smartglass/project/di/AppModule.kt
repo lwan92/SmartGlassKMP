@@ -3,6 +3,9 @@ package com.smartglass.project.di
 import com.smartglass.project.data.local.PreferencesManager
 import com.smartglass.project.data.local.PreferencesManagerImpl
 import com.smartglass.project.data.local.createSettings
+import com.smartglass.project.data.network.BaseUrlConfig
+import com.smartglass.project.data.network.HttpClientFactory
+import com.smartglass.project.data.network.TokenRefreshCoordinator
 import com.smartglass.project.data.remote.api.AuthApi
 import com.smartglass.project.data.repository.AuthRepositoryImpl
 import com.smartglass.project.domain.repository.AuthRepository
@@ -14,9 +17,6 @@ import com.smartglass.project.presentation.login.LoginViewModel
 import com.smartglass.project.presentation.passwordreset.PasswordResetViewModel
 import com.smartglass.project.presentation.qrscan.QrScanViewModel
 import io.ktor.client.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.serialization.kotlinx.json.*
-import kotlinx.serialization.json.Json
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -27,22 +27,14 @@ import org.koin.dsl.module
 
 val networkModule = module {
     single {
-        HttpClient {
-            install(ContentNegotiation) {
-                json(Json {
-                    ignoreUnknownKeys = true
-                    prettyPrint = true
-                    isLenient = true
-                    encodeDefaults = true  // ✅ 기본값 필드도 JSON에 포함
-                    explicitNulls = false  // ✅ null 값도 JSON에 명시적으로 포함
-                })
-            }
-        }
+        HttpClientFactory.create(get<PreferencesManager>())
     }
 }
 
 val apiModule = module {
-    single { AuthApi(get()) }
+    single { BaseUrlConfig(get()) }
+    single { AuthApi(get(), get()) }
+    single { TokenRefreshCoordinator(get(), get()) }
 }
 
 val repositoryModule = module {
@@ -50,12 +42,12 @@ val repositoryModule = module {
 }
 
 val useCaseModule = module {
-    factory { LoginUseCase(get()) }
-    factory { RegisterDeviceUseCase(get()) }
+    factory { LoginUseCase(get(), get()) }
+    factory { RegisterDeviceUseCase(get(), get()) }
 }
 
 val viewModelModule = module {
-    viewModel { IntroViewModel(get(), get()) }
+    viewModel { IntroViewModel(get(), get(), get()) }
     viewModel { LoginViewModel(get(), get()) }
     viewModel { QrScanViewModel(get(), get()) }
     viewModel { PasswordResetViewModel() }

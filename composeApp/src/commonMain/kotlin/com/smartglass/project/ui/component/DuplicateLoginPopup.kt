@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.smartglass.project.ui.component.ButtonStyle
 import com.smartglass.project.ui.theme.*
 
 /**
@@ -27,17 +28,17 @@ fun DuplicateLoginPopup(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f)),
+                .background(Black50),
             contentAlignment = Alignment.BottomCenter
         ) {
             Column(
                 modifier = modifier
                     .fillMaxWidth()
                     .background(
-                        color = Color.White,
+                        color = Gray0,
                         shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
                     )
-                    .padding(24.dp),
+                    .padding(horizontal = 16.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.Start
             ) {
                 // 제목
@@ -64,21 +65,21 @@ fun DuplicateLoginPopup(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // 취소 버튼
+                    // 취소 버튼 (Outlined)
                     CommonButton(
                         text = "취소",
                         onClick = onCancel,
                         modifier = Modifier.weight(1f),
-                        backgroundColor = Color.Transparent,
-                        textColor = Primary,
+                        style = ButtonStyle.Outlined,
                         borderColor = Primary
                     )
                     
-                    // 확인 버튼
+                    // 확인 버튼 (Contained)
                     CommonButton(
                         text = "확인",
                         onClick = onConfirm,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        style = ButtonStyle.Contained
                     )
                 }
             }

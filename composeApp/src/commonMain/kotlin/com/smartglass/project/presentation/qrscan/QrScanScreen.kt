@@ -13,8 +13,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartglass.project.platform.qr.QrScanner
-import com.smartglass.project.ui.theme.AppTypography
-import com.smartglass.project.ui.theme.Primary
+import com.smartglass.project.ui.theme.*
 
 /**
  * QR 스캔 화면
@@ -69,28 +68,39 @@ fun QrScanScreen(
                     // Status Bar 영역 (24dp)
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    // 헤더 바 (40dp)
+                    // 헤더 바 (Figma 디자인: 다크 모드, 40dp 높이)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(40.dp)
-                            .background(Color.Black.copy(alpha = 0.05f))
+                            .background(Color(0xFF0F0F0F).copy(alpha = 0.9f))  // Figma: dark background
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 플래시 아이콘 (추후 구현)
-                        Box(modifier = Modifier.size(24.dp))
+                        // 플래시 아이콘 (24dp × 24dp, 추후 실제 아이콘 구현)
+                        Box(
+                            modifier = Modifier.size(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // TODO: 플래시 아이콘 추가
+                            Text(
+                                text = "⚡",
+                                color = Color.White,
+                                fontSize = 20.sp
+                            )
+                        }
                         
-                        // 제목
+                        // 제목 (중앙 정렬)
                         Text(
                             text = "QR 스캔",
-                            style = AppTypography.SB16px.copy(fontSize = 20.sp),
+                            style = AppTypography.SB20px,
                             color = Color.White,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(1f)
                         )
                         
-                        // 닫기 버튼
+                        // 닫기 버튼 (24dp × 24dp, 흰색 X 아이콘)
                         Box(
                             modifier = Modifier
                                 .size(24.dp)
@@ -121,8 +131,8 @@ fun QrScanScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "디바이스 등록 중...",
+                        style = AppTypography.M18px,
                         color = Color.White,
-                        fontSize = 18.sp,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -143,8 +153,8 @@ fun QrScanScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = currentState.message,
-                        color = Color.Red,
-                        fontSize = 16.sp,
+                        style = AppTypography.M16px,
+                        color = DestructiveText,
                         textAlign = TextAlign.Center
                     )
                     

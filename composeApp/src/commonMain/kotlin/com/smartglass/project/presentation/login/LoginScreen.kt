@@ -58,15 +58,15 @@ fun LoginScreen(
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(68.dp))
+            Spacer(modifier = Modifier.height(108.dp))
 
-            // 로고 영역 (Figma 기준)
+            // 로고 영역 (ui_design_spec.md 5.1: 180dp × 40dp)
             Image(
                 painter = painterResource(Res.drawable.logo),
                 contentDescription = "Logo",
                 modifier = Modifier
-                    .fillMaxWidth(0.6f)
-                    .height(80.dp),
+                    .width(180.dp)
+                    .height(40.dp),
                 contentScale = ContentScale.Fit
             )
 
@@ -75,7 +75,7 @@ fun LoginScreen(
             // Idle 상태에서만 입력 필드 표시
             when (val currentState = state) {
                 is LoginState.Idle -> {
-                    // 아이디 입력
+                    // 아이디 입력 (ui_design_spec.md 5.1: 상단 여백 48dp)
                     CommonTextField(
                         value = currentState.username,
                         onValueChange = { 
@@ -83,6 +83,7 @@ fun LoginScreen(
                         },
                         placeholder = "아이디",
                         modifier = Modifier.fillMaxWidth(),
+                        showClearButton = true,
                         onFocusChange = { isFocused ->
                             if (isFocused) {
                                 viewModel.handleIntent(LoginIntent.OnFieldFocused)
@@ -138,7 +139,7 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // 아이디/비밀번호 찾기 (Figma 기준 - QR 버튼 제거)
+                    // 아이디/비밀번호 찾기 (ui_design_spec.md 5.1: 상단 여백 16dp, 색상 find_account_color)
                     Row(
                         modifier = Modifier.clickable { 
                             viewModel.handleIntent(LoginIntent.ClickFindId)
@@ -148,17 +149,17 @@ fun LoginScreen(
                         Text(
                             text = "아이디 찾기",
                             style = AppTypography.B14px,
-                            color = Gray700
+                            color = FindAccountColor
                         )
                         Text(
                             text = " | ",
                             style = AppTypography.B14px,
-                            color = Gray700
+                            color = FindAccountColor
                         )
                         Text(
                             text = "비밀번호 찾기",
                             style = AppTypography.B14px,
-                            color = Gray700,
+                            color = FindAccountColor,
                             modifier = Modifier.clickable {
                                 viewModel.handleIntent(LoginIntent.ClickFindPassword)
                             }
@@ -198,7 +199,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // 하단 브랜딩 (Figma 기준)
+            // 하단 브랜딩 (Figma 디자인: 텍스트로 표시)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -219,9 +220,6 @@ fun LoginScreen(
                     textAlign = TextAlign.Center
                 )
             }
-
-            // Android Navigation Bar 공간
-            Spacer(modifier = Modifier.height(48.dp))
         }
         
         // 팝업 표시

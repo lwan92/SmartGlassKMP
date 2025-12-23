@@ -1,5 +1,6 @@
 package com.smartglass.project.domain.usecase
 
+import com.smartglass.project.data.network.BaseUrlConfig
 import com.smartglass.project.domain.repository.AuthRepository
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -8,12 +9,15 @@ import kotlinx.serialization.json.jsonPrimitive
 /**
  * 디바이스 등록 UseCase
  * features_spec.md: 2.2 디바이스 등록 프로세스
- * 1. QR 코드 스캔 → 디바이스 등록 API 호출
- * 2. 등록 성공 → 앱 등록 API 호출
- * 3. 등록 성공 → 브랜딩 이미지 다운로드 (TODO)
+ * 1. QR 코드 스캔 → UUID, URL, CompanyCode 추출
+ * 2. URL을 BaseUrlConfig에 저장
+ * 3. 디바이스 등록 API 호출
+ * 4. 등록 성공 → 앱 등록 API 호출
+ * 5. 등록 성공 → 브랜딩 이미지 다운로드 (TODO)
  */
 class RegisterDeviceUseCase(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val baseUrlConfig: BaseUrlConfig
 ) {
     
     /**
@@ -44,7 +48,23 @@ class RegisterDeviceUseCase(
             val uuid = qrJson["uuid"]?.jsonPrimitive?.content 
                 ?: return Result.failure(Exception("QR 코드에 uuid가 없습니다"))
             
-            println("🟢 파싱 성공 - uuid: $uuid")
+            // URL 추출 및 Base URL 저장 (features_spec.md: QR 코드에서 UUID, URL, CompanyCode 추출)
+            val url = qrJson["url"]?.jsonPrimitive?.content
+            if (url != null) {
+                println("🟢 QR 코드에서 URL 추출: $url")
+                baseUrlConfig.setBaseUrl(url)
+                println("🟢 Base URL 저장 완료")
+            } else {
+                println("⚠️ QR 코드에 URL이 없습니다. 기본 URL 사용")
+            }
+            
+            // CompanyCode 추출 (선택적)
+            val companyCode = qrJson["companyCode"]?.jsonPrimitive?.content
+            if (companyCode != null) {
+                println("🟢 CompanyCode: $companyCode")
+            }
+            
+            println("🟢 파싱 성공 - uuid: $uuid, url: ${url ?: "기본 URL 사용"}")
             println("🟢 deviceId: $deviceId (초기 등록 시 null)")
             
             // 2. 디바이스 등록
