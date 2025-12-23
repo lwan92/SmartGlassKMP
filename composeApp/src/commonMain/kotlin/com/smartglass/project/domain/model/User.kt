@@ -1,7 +1,8 @@
 package com.smartglass.project.domain.model
 
 data class User(
-    val userId: Long,
+    val userNo: Int? = null,
+    val userId: String,
     val loginId: String,
     val deptName: String,
     val ognzName: String,

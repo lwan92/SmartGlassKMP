@@ -23,6 +23,9 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
+            
+            // Bundle ID 설정
+            binaryOption("bundleId", "com.smartglass.project")
         }
     }
     
@@ -56,6 +59,11 @@ kotlin {
             
             // Kotlinx Serialization
             implementation(libs.kotlinx.serialization.json)
+            
+            // Multiplatform Settings
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.no.arg)
+            
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -93,4 +101,3 @@ android {
 dependencies {
     debugImplementation(compose.uiTooling)
 }
-

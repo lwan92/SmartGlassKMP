@@ -13,7 +13,6 @@ import com.smartglass.project.presentation.common.rememberPasswordResetViewModel
 import com.smartglass.project.presentation.common.rememberQrScanViewModel
 import com.smartglass.project.presentation.home.HomeScreen
 import com.smartglass.project.presentation.intro.IntroScreen
-import com.smartglass.project.presentation.intro.IntroState
 import com.smartglass.project.presentation.login.LoginScreen
 import com.smartglass.project.presentation.passwordreset.PasswordResetScreen
 import com.smartglass.project.presentation.qrscan.QrScanScreen
@@ -30,6 +29,7 @@ fun initApp() {
 
 /**
  * 앱의 네비게이션을 관리하는 sealed class
+ * features_spec.md 기반 화면 전환 로직
  */
 sealed class Screen {
     object Intro : Screen()
@@ -58,13 +58,27 @@ fun App() {
                         }
                     )
                 }
+                
                 is Screen.Login -> {
                     val loginViewModel = rememberLoginViewModel()
-                    LoginScreen(viewModel = loginViewModel)
+                    LoginScreen(
+                        viewModel = loginViewModel,
+                        onNavigateToHome = {
+                            currentScreen = Screen.Home
+                        },
+                        onNavigateToPasswordReset = {
+                            currentScreen = Screen.PasswordReset
+                        },
+                        onNavigateToQrScan = {
+                            currentScreen = Screen.QrScan
+                        }
+                    )
                 }
+                
                 is Screen.Home -> {
                     HomeScreen()
                 }
+                
                 is Screen.PasswordReset -> {
                     val passwordResetViewModel = rememberPasswordResetViewModel()
                     PasswordResetScreen(
@@ -78,6 +92,7 @@ fun App() {
                         }
                     )
                 }
+                
                 is Screen.QrScan -> {
                     val qrScanViewModel = rememberQrScanViewModel()
                     QrScanScreen(
@@ -87,6 +102,7 @@ fun App() {
                         },
                         onDeviceRegistered = { appId ->
                             // 디바이스 등록 완료 후 로그인 화면으로 돌아가기
+                            // TODO: LoginViewModel에 디바이스 등록 성공 알림
                             currentScreen = Screen.Login
                         }
                     )

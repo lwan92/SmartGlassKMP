@@ -2,17 +2,25 @@ package com.smartglass.project.presentation.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.smartglass.project.data.local.PreferencesManager
+import com.smartglass.project.domain.model.AuthException
 import com.smartglass.project.domain.usecase.LoginUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/**
+ * 로그인 화면 ViewModel
+ * features_spec.md: 2. 로그인 화면 사용자 행동 및 앱 반응 참고
+ */
 class LoginViewModel(
-    private val loginUseCase: LoginUseCase
+    private val loginUseCase: LoginUseCase,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
-    private val _state = MutableStateFlow(LoginState())
+    private val _state = MutableStateFlow<LoginState>(
+        LoginState.Idle(isDeviceRegistered = preferencesManager.isDeviceRegistered())
+    )
     val state: StateFlow<LoginState> = _state.asStateFlow()
 
     fun handleIntent(intent: LoginIntent) {
@@ -20,62 +28,232 @@ class LoginViewModel(
             is LoginIntent.UpdateUsername -> updateUsername(intent.username)
             is LoginIntent.UpdatePassword -> updatePassword(intent.password)
             is LoginIntent.UpdateAutoLogin -> updateAutoLogin(intent.autoLogin)
+            is LoginIntent.TogglePasswordVisibility -> togglePasswordVisibility()
+            
+            is LoginIntent.OnFieldFocused -> onFieldFocused()
+            
             is LoginIntent.ClickLogin -> login()
-            is LoginIntent.ClickFindId -> findId()
-            is LoginIntent.ClickFindPassword -> findPassword()
+            is LoginIntent.ClickQrLogin -> qrLogin()
+            
+            is LoginIntent.ClickDeviceRegistration -> navigateToQrScan()
+            is LoginIntent.DeviceRegistrationSuccess -> onDeviceRegistrationSuccess()
+            is LoginIntent.DeviceRegistrationCancelled -> onDeviceRegistrationCancelled()
+            
+            is LoginIntent.ClickFindId -> showFindAccountPopup()
+            is LoginIntent.ClickFindPassword -> showFindAccountPopup()
+            is LoginIntent.CloseFindAccountPopup -> closeFindAccountPopup()
+            
+            is LoginIntent.ConfirmDuplicateLogin -> loginWithDuplicateAllowed()
+            is LoginIntent.CancelDuplicateLogin -> cancelDuplicateLogin()
+            
+            is LoginIntent.NavigateToHome -> {}
+            is LoginIntent.NavigateToPasswordReset -> {}
+            is LoginIntent.NavigateToQrScan -> {}
         }
     }
-
+    
+    // ========== 입력 업데이트 ==========
+    
     private fun updateUsername(username: String) {
-        _state.update { it.copy(username = username, error = null) }
+        val currentState = _state.value
+        if (currentState is LoginState.Idle) {
+            _state.value = currentState.copy(username = username)
+        }
     }
-
+    
     private fun updatePassword(password: String) {
-        _state.update { it.copy(password = password, error = null) }
+        val currentState = _state.value
+        if (currentState is LoginState.Idle) {
+            _state.value = currentState.copy(password = password)
+        }
     }
-
+    
     private fun updateAutoLogin(autoLogin: Boolean) {
-        _state.update { it.copy(autoLogin = autoLogin) }
+        val currentState = _state.value
+        if (currentState is LoginState.Idle) {
+            _state.value = currentState.copy(autoLogin = autoLogin)
+        }
     }
-
-    private fun login() {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            
-            val result = loginUseCase(
-                loginId = _state.value.username,
-                password = _state.value.password,
-                autoLogin = _state.value.autoLogin
-            )
-            
-            result.fold(
-                onSuccess = { loginResult ->
-                    _state.update { it.copy(isLoading = false) }
-                    // TODO: 로그인 성공 처리
-                    // - 토큰 저장
-                    // - 사용자 정보 저장
-                    // - 비밀번호 재설정 여부 확인 (loginResult.isPasswordReset)
-                    // - 홈 화면으로 네비게이션
-                    println("로그인 성공: ${loginResult.user.userName}")
-                    println("AccessToken: ${loginResult.token.accessToken}")
-                },
-                onFailure = { error ->
-                    _state.update { 
-                        it.copy(
-                            isLoading = false,
-                            error = error.message ?: "로그인에 실패했습니다"
-                        )
-                    }
-                }
+    
+    private fun togglePasswordVisibility() {
+        val currentState = _state.value
+        if (currentState is LoginState.Idle) {
+            _state.value = currentState.copy(showPassword = !currentState.showPassword)
+        }
+    }
+    
+    // ========== 디바이스 등록 체크 ==========
+    
+    private fun onFieldFocused() {
+        val currentState = _state.value
+        if (currentState is LoginState.Idle && !currentState.isDeviceRegistered) {
+            _state.value = LoginState.DeviceRegistrationRequired
+        }
+    }
+    
+    private fun onDeviceRegistrationSuccess() {
+        val currentState = _state.value
+        if (currentState is LoginState.Idle) {
+            _state.value = currentState.copy(isDeviceRegistered = true)
+        } else {
+            _state.value = LoginState.Idle(isDeviceRegistered = true)
+        }
+    }
+    
+    private fun onDeviceRegistrationCancelled() {
+        _state.value = LoginState.Idle(isDeviceRegistered = false)
+    }
+    
+    // ========== 네비게이션 ==========
+    
+    private fun navigateToQrScan() {
+        _state.value = LoginState.NavigateToQrScan
+    }
+    
+    // ========== 계정 찾기 팝업 ==========
+    
+    private fun showFindAccountPopup() {
+        _state.value = LoginState.ShowFindAccountPopup
+    }
+    
+    private fun closeFindAccountPopup() {
+        val currentState = _state.value
+        if (currentState is LoginState.Idle) {
+            _state.value = currentState
+        } else {
+            _state.value = LoginState.Idle(
+                isDeviceRegistered = preferencesManager.isDeviceRegistered()
             )
         }
     }
-
-    private fun findId() {
-        // TODO: 아이디 찾기 로직 구현
+    
+    // ========== 로그인 ==========
+    
+    private fun login() {
+        val currentState = _state.value
+        if (currentState is LoginState.Idle) {
+            _state.value = LoginState.LoginInProgress
+            
+            viewModelScope.launch {
+                // appId는 PreferencesManager에서 가져오기 (디바이스 등록 후 발급받은 값)
+                val appId = preferencesManager.getAppId()
+                val result = loginUseCase(
+                    loginId = currentState.username,
+                    password = currentState.password,
+                    autoLogin = currentState.autoLogin,
+                    appId = appId,  // null일 수 있음 (api_spec.md에 따르면 nullable)
+                    allowDuplicateLogin = false
+                )
+                
+                result.fold(
+                    onSuccess = { loginResult ->
+                        // 비밀번호 재설정 필요 여부 확인
+                        if (loginResult.isPasswordReset == true) {
+                            _state.value = LoginState.NavigateToPasswordReset
+                        } else {
+                            _state.value = LoginState.NavigateToHome
+                        }
+                    },
+                    onFailure = { error ->
+                        // 중복 로그인 에러 처리
+                        when (error) {
+                            is AuthException.DuplicateLogin -> {
+                                _state.value = LoginState.DuplicateLogin
+                            }
+                            is AuthException.Other -> {
+                                _state.value = LoginState.LoginFailure(
+                                    errorCode = error.errorCode,
+                                    message = error.message
+                                )
+                                
+                                viewModelScope.launch {
+                                    kotlinx.coroutines.delay(3000)
+                                    _state.value = LoginState.Idle(
+                                        username = currentState.username,
+                                        password = currentState.password,
+                                        autoLogin = currentState.autoLogin,
+                                        isDeviceRegistered = currentState.isDeviceRegistered
+                                    )
+                                }
+                            }
+                            else -> {
+                                _state.value = LoginState.LoginFailure(
+                                    errorCode = null,
+                                    message = error.message
+                                )
+                                
+                                viewModelScope.launch {
+                                    kotlinx.coroutines.delay(3000)
+                                    _state.value = LoginState.Idle(
+                                        username = currentState.username,
+                                        password = currentState.password,
+                                        autoLogin = currentState.autoLogin,
+                                        isDeviceRegistered = currentState.isDeviceRegistered
+                                    )
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+        }
     }
-
-    private fun findPassword() {
-        // TODO: 비밀번호 찾기 로직 구현
+    
+    private fun qrLogin() {
+        _state.value = LoginState.NavigateToQrScan
+    }
+    
+    // ========== 중복 로그인 처리 ==========
+    
+    private fun loginWithDuplicateAllowed() {
+        val currentState = _state.value
+        if (currentState is LoginState.Idle) {
+            _state.value = LoginState.LoginInProgress
+            
+            viewModelScope.launch {
+                // appId는 PreferencesManager에서 가져오기 (디바이스 등록 후 발급받은 값)
+                val appId = preferencesManager.getAppId()
+                val result = loginUseCase(
+                    loginId = currentState.username,
+                    password = currentState.password,
+                    autoLogin = currentState.autoLogin,
+                    appId = appId,  // null일 수 있음 (api_spec.md에 따르면 nullable)
+                    allowDuplicateLogin = true
+                )
+                
+                result.fold(
+                    onSuccess = { loginResult ->
+                        _state.value = LoginState.NavigateToHome
+                    },
+                    onFailure = { error ->
+                        _state.value = LoginState.LoginFailure(
+                            errorCode = null,
+                            message = error.message
+                        )
+                        
+                        viewModelScope.launch {
+                            kotlinx.coroutines.delay(3000)
+                            _state.value = LoginState.Idle(
+                                username = currentState.username,
+                                password = currentState.password,
+                                autoLogin = currentState.autoLogin,
+                                isDeviceRegistered = currentState.isDeviceRegistered
+                            )
+                        }
+                    }
+                )
+            }
+        }
+    }
+    
+    private fun cancelDuplicateLogin() {
+        val currentState = _state.value
+        if (currentState is LoginState.Idle) {
+            _state.value = currentState
+        } else {
+            _state.value = LoginState.Idle(
+                isDeviceRegistered = preferencesManager.isDeviceRegistered()
+            )
+        }
     }
 }

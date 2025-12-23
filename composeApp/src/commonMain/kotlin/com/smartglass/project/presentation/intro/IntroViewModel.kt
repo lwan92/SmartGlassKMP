@@ -2,7 +2,9 @@ package com.smartglass.project.presentation.intro
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.smartglass.project.domain.usecase.LoginUseCase
+import com.smartglass.project.data.local.PreferencesManager
+import com.smartglass.project.data.network.TokenRefreshCoordinator
+import com.smartglass.project.platform.permissions.PermissionManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,86 +13,143 @@ import kotlinx.coroutines.launch
 
 /**
  * Intro 화면 ViewModel
- * features_spec.md의 Intro 화면 로직을 기반으로 구현
+ * features_spec.md: 1. Intro 화면 사용자 행동 및 앱 반응 참고
  */
 class IntroViewModel(
-    private val loginUseCase: LoginUseCase // 자동 로그인용 (나중에 사용)
+    private val preferencesManager: PreferencesManager,
+    private val permissionManager: PermissionManager,
+    private val tokenRefreshCoordinator: TokenRefreshCoordinator
 ) : ViewModel() {
     private val _state = MutableStateFlow<IntroState>(IntroState.Idle)
     val state: StateFlow<IntroState> = _state.asStateFlow()
-
-    fun handleIntent(intent: IntroIntent) {
-        when (intent) {
-            is IntroIntent.StartApp -> startApp()
-            is IntroIntent.PermissionsGranted -> checkLogin()
-            is IntroIntent.PermissionsDenied -> navigateToLogin()
-            is IntroIntent.AutoLoginSuccess -> navigateToHome()
-            is IntroIntent.AutoLoginFailed -> navigateToLogin()
-            is IntroIntent.NavigateToLogin -> navigateToLogin()
-            is IntroIntent.NavigateToHome -> navigateToHome()
-        }
+    
+    init {
+        startIntroFlow()
     }
-
-    /**
-     * 앱 시작 처리
-     * 1. 스플래시 화면 표시 (2초)
-     * 2. 권한 확인 시작
-     */
-    private fun startApp() {
+    
+    private fun startIntroFlow() {
         viewModelScope.launch {
+            // features_spec.md: Input: 앱 시작
+            // Output: 스플래시 이미지 표시 (브랜딩 이미지 또는 기본 이미지)
             _state.value = IntroState.ShowingSplash
             
-            // 스플래시 2초 표시
+            // features_spec.md: Input: 2초 대기 후
+            // Output: 권한 확인 시작
             delay(2000)
-            
-            // 권한 확인 시작
-            _state.value = IntroState.CheckingPermissions
-            // TODO: 실제 권한 확인 로직 구현
-            // 현재는 바로 로그인 확인으로 진행
-            checkLogin()
+            checkPermissions()
         }
     }
-
-    /**
-     * 로그인 상태 확인
-     * 자동 로그인 가능 여부 확인 후 처리
-     */
-    private fun checkLogin() {
+    
+    fun handleIntent(intent: IntroIntent) {
+        when (intent) {
+            is IntroIntent.CheckPermissions -> checkPermissions()
+            is IntroIntent.PermissionsGranted -> onPermissionsGranted()
+            is IntroIntent.PermissionsDenied -> onPermissionsDenied()
+            is IntroIntent.CheckAutoLogin -> checkAutoLogin()
+            is IntroIntent.AutoLoginSuccess -> onAutoLoginSuccess()
+            is IntroIntent.AutoLoginFailed -> onAutoLoginFailed()
+        }
+    }
+    
+    private fun checkPermissions() {
+        _state.value = IntroState.CheckingPermissions
+        
         viewModelScope.launch {
-            _state.value = IntroState.CheckingLogin
-            
-            // TODO: 저장된 토큰 확인 및 디바이스 등록 여부 확인
-            // 현재는 자동 로그인 불가로 가정하고 로그인 화면으로 이동
-            delay(500) // 확인 시간 시뮬레이션
-            
-            // 자동 로그인 가능 여부 확인
-            val hasToken = false // TODO: 실제 토큰 확인 로직
-            val isDeviceRegistered = false // TODO: 실제 디바이스 등록 확인 로직
-            
-            if (hasToken && isDeviceRegistered) {
-                // 자동 로그인 시도
-                _state.value = IntroState.AutoLoginInProgress
-                // TODO: 자동 로그인 API 호출
-                // 현재는 실패로 가정
-                navigateToLogin()
-            } else {
-                // 자동 로그인 불가 -> 로그인 화면으로 이동
-                navigateToLogin()
+            try {
+                val hasPermissions = permissionManager.checkPermissions()
+                
+                if (hasPermissions) {
+                    onPermissionsGranted()
+                } else {
+                    // 권한 요청 시도
+                    _state.value = IntroState.RequestingPermissions
+                    val granted = permissionManager.requestPermissions()
+                    
+                    if (granted) {
+                        onPermissionsGranted()
+                    } else {
+                        onPermissionsDenied()
+                    }
+                }
+            } catch (e: Exception) {
+                _state.value = IntroState.Error(e.message ?: "권한 확인 실패")
+                delay(2000)
+                onPermissionsDenied()
             }
         }
     }
-
-    /**
-     * 로그인 화면으로 이동
-     */
-    private fun navigateToLogin() {
-        _state.value = IntroState.NavigateToLogin
+    
+    private fun onPermissionsGranted() {
+        // features_spec.md: Input: 필수 권한 확인 완료
+        // Output: 로그인 상태 확인
+        checkAutoLogin()
     }
-
-    /**
-     * 홈 화면으로 이동
-     */
-    private fun navigateToHome() {
+    
+    private fun onPermissionsDenied() {
+        // features_spec.md: Input: 권한 거부
+        // Output: 권한 안내 토스트 표시, 로그인 화면으로 이동
+        viewModelScope.launch {
+            delay(1000)
+            _state.value = IntroState.NavigateToLogin
+        }
+    }
+    
+    private fun checkAutoLogin() {
+        _state.value = IntroState.CheckingLogin
+        
+        viewModelScope.launch {
+            val hasRefreshToken = preferencesManager.getRefreshToken() != null
+            val isDeviceRegistered = preferencesManager.isDeviceRegistered()
+            val isAutoLoginEnabled = preferencesManager.isAutoLoginEnabled()
+            
+            if (hasRefreshToken && isDeviceRegistered && isAutoLoginEnabled) {
+                // features_spec.md: Input: 자동 로그인 가능 (토큰 존재 + 디바이스 등록됨)
+                // Output: 자동 로그인 시도
+                tryAutoLogin()
+            } else {
+                // features_spec.md: Input: 자동 로그인 실패 또는 자동 로그인 불가
+                // Output: 로그인 화면으로 이동
+                onAutoLoginFailed()
+            }
+        }
+    }
+    
+    private fun tryAutoLogin() {
+        _state.value = IntroState.AutoLoginInProgress
+        
+        viewModelScope.launch {
+            try {
+                // TokenRefreshCoordinator를 사용하여 토큰 갱신
+                val result = tokenRefreshCoordinator.awaitFreshAccessToken()
+                
+                result.fold(
+                    onSuccess = { accessToken ->
+                        // 토큰 갱신 성공 → 자동 로그인 성공
+                        onAutoLoginSuccess()
+                    },
+                    onFailure = { error ->
+                        // 토큰 갱신 실패 → 자동 로그인 실패
+                        preferencesManager.clearTokens() // 실패한 토큰 삭제
+                        onAutoLoginFailed()
+                    }
+                )
+            } catch (e: Exception) {
+                // 예외 발생 → 자동 로그인 실패
+                preferencesManager.clearTokens()
+                onAutoLoginFailed()
+            }
+        }
+    }
+    
+    private fun onAutoLoginSuccess() {
+        // features_spec.md: Input: 자동 로그인 성공
+        // Output: 홈 화면으로 이동
         _state.value = IntroState.NavigateToHome
+    }
+    
+    private fun onAutoLoginFailed() {
+        // features_spec.md: Input: 자동 로그인 실패 또는 자동 로그인 불가
+        // Output: 로그인 화면으로 이동
+        _state.value = IntroState.NavigateToLogin
     }
 }

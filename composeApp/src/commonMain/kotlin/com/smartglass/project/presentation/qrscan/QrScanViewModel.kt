@@ -2,78 +2,91 @@ package com.smartglass.project.presentation.qrscan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.smartglass.project.data.local.PreferencesManager
+import com.smartglass.project.domain.usecase.RegisterDeviceUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
-/**
- * QR 스캔 화면 ViewModel
- * features_spec.md의 QR 스캔 로직을 기반으로 구현
- */
-class QrScanViewModel() : ViewModel() {
+class QrScanViewModel(
+    private val registerDeviceUseCase: RegisterDeviceUseCase,
+    private val preferencesManager: PreferencesManager
+) : ViewModel() {
     private val _state = MutableStateFlow<QrScanState>(QrScanState.Idle)
     val state: StateFlow<QrScanState> = _state.asStateFlow()
+    
+    init {
+        println("🔵 QrScanViewModel: 초기화 완료")
+    }
 
     fun handleIntent(intent: QrScanIntent) {
+        println("🔵 QrScanViewModel: handleIntent - $intent")
         when (intent) {
             is QrScanIntent.StartScanning -> startScanning()
             is QrScanIntent.QrCodeScanned -> onQrCodeScanned(intent.qrData)
+            is QrScanIntent.ScanError -> onScanError(intent.error)
             is QrScanIntent.RegisterDevice -> registerDevice()
-            is QrScanIntent.Close -> close()
+            is QrScanIntent.Close -> closeScanner()
         }
     }
 
-    /**
-     * 스캔 시작
-     */
     private fun startScanning() {
+        println("🔵 QrScanViewModel: startScanning 호출됨")
         _state.value = QrScanState.Scanning
     }
 
-    /**
-     * QR 코드 스캔 완료 처리
-     * @param qrData 스캔된 QR 코드 데이터 (appId 포함)
-     */
     private fun onQrCodeScanned(qrData: String) {
-        _state.value = QrScanState.Scanned(qrData)
-        // 자동으로 디바이스 등록 시도
-        registerDevice()
+        println("🔵 QrScanViewModel: onQrCodeScanned 호출됨 - qrData: $qrData")
+        viewModelScope.launch {
+            _state.value = QrScanState.RegisteringDevice
+            
+            val deviceId = null
+            
+            println("🔵 QrScanViewModel: RegisterDeviceUseCase 호출 시작")
+            val result = registerDeviceUseCase(
+                qrCodeData = qrData,
+                deviceId = deviceId,
+                appVersion = "1.0.0"
+            )
+            
+            result.fold(
+                onSuccess = { appId ->
+                    println("🔵 QrScanViewModel: 디바이스 등록 성공 - appId: $appId")
+                    // 디바이스 등록 성공 → PreferencesManager에 저장
+                    preferencesManager.setDeviceRegistered(true)
+                    
+                    _state.value = QrScanState.DeviceRegistered(appId = appId)
+                },
+                onFailure = { error ->
+                    println("🔵 QrScanViewModel: 디바이스 등록 실패 - ${error.message}")
+                    _state.value = QrScanState.Error(
+                        error.message ?: "디바이스 등록에 실패했습니다"
+                    )
+                }
+            )
+        }
+    }
+    
+    private fun onScanError(error: String) {
+        println("🔵 QrScanViewModel: onScanError - $error")
+        _state.value = QrScanState.Error(error)
     }
 
-    /**
-     * 디바이스 등록
-     * api_spec.md의 디바이스 등록 API를 호출
-     */
     private fun registerDevice() {
+        println("🔵 QrScanViewModel: registerDevice 호출됨")
+        _state.value = QrScanState.RegisteringDevice
+        
+        // TODO: 실제 디바이스 등록 로직 구현
         viewModelScope.launch {
-            val currentState = _state.value
-            if (currentState is QrScanState.Scanned) {
-                _state.value = QrScanState.RegisteringDevice
-                
-                // TODO: 디바이스 등록 API 호출
-                // api_spec.md의 1.8 디바이스 등록 API 사용
-                // RegisterDeviceRequest:
-                //   - deviceId: 디바이스 고유 ID
-                //   - deviceType: "MOBILE"
-                //   - platform: "ios" 또는 "android"
-                //   - appId: QR 코드에서 획득한 appId
-                
-                try {
-                    // 임시로 성공 처리
-                    // 실제 구현 시 Repository를 통해 API 호출
-                    _state.value = QrScanState.DeviceRegistered(currentState.qrData)
-                } catch (e: Exception) {
-                    _state.value = QrScanState.Error("디바이스 등록에 실패했습니다: ${e.message}")
-                }
-            }
+            kotlinx.coroutines.delay(1000)
+            _state.value = QrScanState.DeviceRegistered("test-app-id")
         }
     }
 
-    /**
-     * 화면 닫기
-     */
-    private fun close() {
+    private fun closeScanner() {
+        println("🔵 QrScanViewModel: closeScanner 호출됨")
         _state.value = QrScanState.Idle
     }
 }

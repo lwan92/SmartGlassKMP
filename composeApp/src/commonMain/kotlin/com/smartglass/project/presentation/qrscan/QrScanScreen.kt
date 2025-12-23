@@ -1,26 +1,25 @@
 package com.smartglass.project.presentation.qrscan
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.smartglass.project.platform.qr.QrScanner
+import com.smartglass.project.ui.theme.*
 
 /**
  * QR 스캔 화면
- * features_spec.md 및 Figma 디자인을 기반으로 구현
- * - 카메라 권한 확인
- * - QR 코드 스캔 UI 표시
- * - 스캔 완료 시 디바이스 등록 API 호출
+ * Figma: https://www.figma.com/design/diRXHJDeWdqsBzI1qcA8I4/SmartGlass-Design?node-id=8135-42836
+ * iOS: AVFoundation 기반 실제 QR 스캔
+ * Android: Placeholder (CameraX 구현 필요)
  */
 @Composable
 fun QrScanScreen(
@@ -30,65 +29,160 @@ fun QrScanScreen(
     onDeviceRegistered: (appId: String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
-
-    // 스캔 시작
-    LaunchedEffect(Unit) {
-        viewModel.handleIntent(QrScanIntent.StartScanning)
-    }
-
-    // 디바이스 등록 성공 시 콜백 호출
+    
+    // 디바이스 등록 성공 시 콜백
     LaunchedEffect(state) {
-        when (state) {
+        when (val currentState = state) {
             is QrScanState.DeviceRegistered -> {
-                onDeviceRegistered(state.appId)
+                onDeviceRegistered(currentState.appId)
             }
             else -> {}
         }
     }
-
+    
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            when (state) {
-                is QrScanState.Scanning -> {
-                    Text(
-                        text = "QR 코드를 스캔해주세요",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        textAlign = TextAlign.Center
+        when (val currentState = state) {
+            is QrScanState.Idle, is QrScanState.Scanning -> {
+                // 실제 QR 스캔 UI (iOS: AVFoundation, Android: Placeholder)
+                QrScanner(
+                    modifier = Modifier.fillMaxSize(),
+                    onQrCodeScanned = { qrCode ->
+                        viewModel.handleIntent(QrScanIntent.QrCodeScanned(qrCode))
+                    },
+                    onError = { error ->
+                        viewModel.handleIntent(QrScanIntent.ScanError(error))
+                    }
+                )
+                
+                // 상단 헤더 (Figma 기준)
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                ) {
+                    // Status Bar 영역 (24dp)
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // 헤더 바 (Figma 디자인: 다크 모드, 40dp 높이)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp)
+                            .background(Color(0xFF0F0F0F).copy(alpha = 0.9f))  // Figma: dark background
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 플래시 아이콘 (24dp × 24dp, 추후 실제 아이콘 구현)
+                        Box(
+                            modifier = Modifier.size(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // TODO: 플래시 아이콘 추가
+                            Text(
+                                text = "⚡",
+                                color = Color.White,
+                                fontSize = 20.sp
+                            )
+                        }
+                        
+                        // 제목 (중앙 정렬)
+                        Text(
+                            text = "QR 스캔",
+                            style = AppTypography.SB20px,
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(1f)
+                        )
+                        
+                        // 닫기 버튼 (24dp × 24dp, 흰색 X 아이콘)
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clickable { onClose() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "✕",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
+            
+            is QrScanState.RegisteringDevice -> {
+                // 등록 중 로딩
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = Primary,
+                        modifier = Modifier.size(48.dp)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    // TODO: 실제 QR 코드 스캔 UI 구현
-                    // - 카메라 프리뷰
-                    // - 스캔 영역 표시
-                    // - 스캔 완료 시 QrScanIntent.QrCodeScanned 호출
-                }
-                is QrScanState.RegisteringDevice -> {
                     Text(
                         text = "디바이스 등록 중...",
+                        style = AppTypography.M18px,
                         color = Color.White,
-                        fontSize = 18.sp,
                         textAlign = TextAlign.Center
                     )
                 }
-                is QrScanState.Error -> {
-                    Text(
-                        text = state.message,
-                        color = Color.Red,
-                        fontSize = 16.sp,
-                        textAlign = TextAlign.Center
-                    )
-                }
-                else -> {}
             }
+            
+            is QrScanState.Error -> {
+                // 에러 표시
+                Column(
+                    modifier = Modifier.padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "⚠️",
+                        fontSize = 48.sp,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = currentState.message,
+                        style = AppTypography.M16px,
+                        color = DestructiveText,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    // 3초 후 다시 스캔 모드로
+                    LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(3000)
+                        viewModel.handleIntent(QrScanIntent.StartScanning)
+                    }
+                }
+                
+                // 에러 시에도 닫기 버튼 표시
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 32.dp, end = 16.dp)
+                        .size(24.dp)
+                        .clickable { onClose() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "✕",
+                        color = Color.White,
+                        fontSize = 20.sp
+                    )
+                }
+            }
+            
+            else -> {}
         }
     }
 }

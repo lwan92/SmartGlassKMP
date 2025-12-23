@@ -16,15 +16,6 @@ import androidx.compose.ui.unit.sp
 import com.smartglass.project.ui.component.CommonButton
 import com.smartglass.project.ui.component.CommonTextField
 
-/**
- * 비밀번호 재설정 화면
- * features_spec.md 및 Figma 디자인을 기반으로 구현
- * - 현재 비밀번호 입력
- * - 새 비밀번호 입력
- * - 새 비밀번호 확인 입력
- * - 비밀번호 유효성 검사 안내
- * - 재설정 버튼
- */
 @Composable
 fun PasswordResetScreen(
     viewModel: PasswordResetViewModel,
@@ -34,7 +25,6 @@ fun PasswordResetScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
-    // 비밀번호 재설정 성공 시 콜백 호출
     LaunchedEffect(state) {
         when (state) {
             is PasswordResetState.ResetSuccess -> {
@@ -52,7 +42,6 @@ fun PasswordResetScreen(
     ) {
         Spacer(modifier = Modifier.height(24.dp))
         
-        // 제목
         Text(
             text = "비밀번호 변경 요청",
             fontSize = 20.sp,
@@ -61,7 +50,6 @@ fun PasswordResetScreen(
         
         Spacer(modifier = Modifier.height(8.dp))
         
-        // 안내 문구
         Text(
             text = "비밀번호 변경 후 재로그인이 필요합니다.",
             fontSize = 14.sp,
@@ -75,16 +63,10 @@ fun PasswordResetScreen(
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        val idleState = when (state) {
-            is PasswordResetState.Idle -> state
-            else -> null
-        }
-        
-        when (state) {
+        when (val currentState = state) {
             is PasswordResetState.Idle -> {
-                // 현재 비밀번호 입력 필드
                 CommonTextField(
-                    value = idleState.currentPassword,
+                    value = currentState.currentPassword,
                     onValueChange = { 
                         viewModel.handleIntent(
                             PasswordResetIntent.UpdateCurrentPassword(it)
@@ -92,7 +74,7 @@ fun PasswordResetScreen(
                     },
                     placeholder = "현재 비밀번호",
                     isPassword = true,
-                    showPassword = idleState.showCurrentPassword,
+                    showPassword = currentState.showCurrentPassword,
                     onTogglePasswordVisibility = {
                         viewModel.handleIntent(
                             PasswordResetIntent.ToggleCurrentPasswordVisibility
@@ -103,9 +85,8 @@ fun PasswordResetScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // 새 비밀번호 입력 필드
                 CommonTextField(
-                    value = state.newPassword,
+                    value = currentState.newPassword,
                     onValueChange = { 
                         viewModel.handleIntent(
                             PasswordResetIntent.UpdateNewPassword(it)
@@ -113,7 +94,7 @@ fun PasswordResetScreen(
                     },
                     placeholder = "새 비밀번호",
                     isPassword = true,
-                    showPassword = state.showNewPassword,
+                    showPassword = currentState.showNewPassword,
                     onTogglePasswordVisibility = {
                         viewModel.handleIntent(
                             PasswordResetIntent.ToggleNewPasswordVisibility
@@ -124,9 +105,8 @@ fun PasswordResetScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // 새 비밀번호 확인 입력 필드
                 CommonTextField(
-                    value = state.confirmPassword,
+                    value = currentState.confirmPassword,
                     onValueChange = { 
                         viewModel.handleIntent(
                             PasswordResetIntent.UpdateConfirmPassword(it)
@@ -134,7 +114,7 @@ fun PasswordResetScreen(
                     },
                     placeholder = "새 비밀번호 확인",
                     isPassword = true,
-                    showPassword = state.showConfirmPassword,
+                    showPassword = currentState.showConfirmPassword,
                     onTogglePasswordVisibility = {
                         viewModel.handleIntent(
                             PasswordResetIntent.ToggleConfirmPasswordVisibility
@@ -145,7 +125,6 @@ fun PasswordResetScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // 비밀번호 유효성 안내
                 Text(
                     text = "* 비밀번호 유효성 안내",
                     fontSize = 12.sp,
@@ -157,8 +136,7 @@ fun PasswordResetScreen(
                     color = Color.Red
                 )
                 
-                // 에러 메시지 표시
-                state.validationError?.let { error ->
+                currentState.validationError?.let { error ->
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = error,
@@ -169,13 +147,12 @@ fun PasswordResetScreen(
                 
                 Spacer(modifier = Modifier.weight(1f))
                 
-                // 재설정 버튼
                 CommonButton(
                     text = "재설정",
                     onClick = {
                         viewModel.handleIntent(PasswordResetIntent.ResetPassword)
                     },
-                    enabled = state.isResetEnabled,
+                    enabled = currentState.isResetEnabled,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -190,7 +167,7 @@ fun PasswordResetScreen(
             }
             is PasswordResetState.Error -> {
                 Text(
-                    text = state.message,
+                    text = currentState.message,
                     fontSize = 14.sp,
                     color = Color.Red,
                     textAlign = TextAlign.Center,

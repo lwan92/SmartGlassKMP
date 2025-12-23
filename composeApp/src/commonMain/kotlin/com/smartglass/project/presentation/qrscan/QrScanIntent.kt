@@ -7,6 +7,7 @@ package com.smartglass.project.presentation.qrscan
 sealed class QrScanIntent {
     object StartScanning : QrScanIntent()              // 스캔 시작
     data class QrCodeScanned(val qrData: String) : QrScanIntent()  // QR 코드 스캔 완료
+    data class ScanError(val error: String) : QrScanIntent()       // 스캔 에러
     object RegisterDevice : QrScanIntent()             // 디바이스 등록
     object Close : QrScanIntent()                      // 화면 닫기
 }
